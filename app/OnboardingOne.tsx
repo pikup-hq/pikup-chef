@@ -10,8 +10,8 @@ import { responsiveText } from "@/utilities/helper";
 import { DefaultButton } from "@/components/common/Button";
 import COLORS from "@/constants/colors";
 import Logo from "@/assets/svg/pikup-logo.svg";
-import OnboardingPicOne from "@/assets/svg/onboard-truck.svg";
-import SliderOne from "@/assets/svg/slider-one.svg";
+import OnboardTwo from "@/assets/svg/onboard-food.svg";
+import SliderTwo from "@/assets/svg/slider-two.svg";
 import { router } from "expo-router";
 
 export default function OnboardingOne() {
@@ -28,14 +28,14 @@ export default function OnboardingOne() {
           marginBottom: 15,
         }}
       >
-        Welcome to Pikup
+        Reach more customers
       </SemiBoldText>
       <MediumText
         style={{
           textAlign: "center",
         }}
       >
-        Welcome to Pikup vendor. Let's do some cooking Chef🧑‍🍳.
+        Connect with thousands of customers in your area looking for great food.
       </MediumText>
       <View style={{ alignItems: "center" }}>
         <View
@@ -44,20 +44,19 @@ export default function OnboardingOne() {
             marginBottom: 90,
           }}
         >
-          <OnboardingPicOne />
+          <OnboardTwo />
         </View>
         <View
           style={{
             marginBottom: 30,
           }}
         >
-          <SliderOne />
+          <SliderTwo />
         </View>
       </View>
-
       <DefaultButton
         title="Next"
-        onPress={() => router.push("/OnboardingOne")}
+        onPress={() => router.push("/OnboardingTwo")}
       />
       <TouchableOpacity onPress={() => router.push("/SignUp")}>
         <SmallText

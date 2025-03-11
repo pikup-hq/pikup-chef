@@ -10,11 +10,11 @@ import { responsiveText } from "@/utilities/helper";
 import { DefaultButton } from "@/components/common/Button";
 import COLORS from "@/constants/colors";
 import Logo from "@/assets/svg/pikup-logo.svg";
-import OnboardingPicOne from "@/assets/svg/onboard-truck.svg";
-import SliderOne from "@/assets/svg/slider-one.svg";
+import OnboardTwo from "@/assets/svg/onboard-man.svg";
+import SliderTwo from "@/assets/svg/slider-three.svg";
 import { router } from "expo-router";
 
-export default function OnboardingOne() {
+export default function OnboardingTwo() {
   return (
     <AppSafeAreaView>
       <View style={{ alignItems: "center", marginTop: responsiveText(50) }}>
@@ -28,14 +28,15 @@ export default function OnboardingOne() {
           marginBottom: 15,
         }}
       >
-        Welcome to Pikup
+        Easy Order Management
       </SemiBoldText>
       <MediumText
         style={{
           textAlign: "center",
         }}
       >
-        Welcome to Pikup vendor. Let's do some cooking Chef🧑‍🍳.
+        Our intuitive dashboard makes it simple to manage orders and communicate
+        with customers.
       </MediumText>
       <View style={{ alignItems: "center" }}>
         <View
@@ -44,32 +45,17 @@ export default function OnboardingOne() {
             marginBottom: 90,
           }}
         >
-          <OnboardingPicOne />
+          <OnboardTwo />
         </View>
         <View
           style={{
             marginBottom: 30,
           }}
         >
-          <SliderOne />
+          <SliderTwo />
         </View>
       </View>
-
-      <DefaultButton
-        title="Next"
-        onPress={() => router.push("/OnboardingOne")}
-      />
-      <TouchableOpacity onPress={() => router.push("/SignUp")}>
-        <SmallText
-          style={{
-            color: COLORS.greyText,
-            marginTop: 15,
-            textAlign: "center",
-          }}
-        >
-          Skip
-        </SmallText>
-      </TouchableOpacity>
+      <DefaultButton title="Next" onPress={() => router.push("/SignUp")} />
     </AppSafeAreaView>
   );
 }

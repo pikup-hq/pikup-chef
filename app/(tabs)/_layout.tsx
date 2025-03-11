@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { Home, ShoppingBag, Bell, User, ComputerIcon, Zap } from "lucide-react-native";
+import { Home, ShoppingBag, Bell, User, ComputerIcon, Zap, Wallet2, Dock, CookingPot } from "lucide-react-native";
 import COLORS from './../../constants/colors';
 
 export default function TabLayout() {
@@ -34,20 +34,20 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="orders"
+        name="menu"
         options={{
-          title: "Orders",
+          title: "Menu",
           tabBarIcon: ({ color, size }) => (
-            <ShoppingBag size={20} color={color}  />
+            <CookingPot size={20} color={color}  />
           ),
         }}
       />
       <Tabs.Screen
-        name="notifications"
+        name="wallet"
         options={{
-          title: "AI",
+          title: "Wallet",
           tabBarIcon: ({ color, size }) => (
-            <Zap size={20} color={color}  />
+            <Wallet2 size={20} color={color}  />
           ),
         }}
       />

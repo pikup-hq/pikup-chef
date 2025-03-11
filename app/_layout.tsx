@@ -6,7 +6,6 @@ import { useEffect } from "react";
 import { View } from "react-native";
 import "react-native-reanimated";
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
@@ -14,7 +13,6 @@ export default function RootLayout() {
     "Sen-Medium": require("../assets/fonts/BeVietnamPro-Medium.ttf"),
     "Sen-Regular": require("../assets/fonts/BeVietnamPro-Regular.ttf"),
     "Sen-Italic": require("../assets/fonts/BeVietnamPro-MediumItalic.ttf"),
-
     "Sen-Bold": require("../assets/fonts/BeVietnamPro-Bold.ttf"),
     "Sen-SemiBold": require("../assets/fonts/BeVietnamPro-SemiBold.ttf"),
   });
@@ -40,7 +38,14 @@ export default function RootLayout() {
         }}
       >
         <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen name="OnboardingOne" options={{ headerShown: false }} />
+        <Stack.Screen name="OnboardingTwo" options={{ headerShown: false }} />
+        <Stack.Screen name="SignUp" options={{ headerShown: false }} />
+        <Stack.Screen name="Login" options={{ headerShown: false }} />
+        <Stack.Screen name="VerifyMail" options={{ headerShown: false }} />
+        <Stack.Screen name="MoreDetails" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="order" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style="auto" />
     </View>

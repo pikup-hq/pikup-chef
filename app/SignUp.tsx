@@ -170,8 +170,23 @@ const SignupScreen: React.FC<SignupScreenProps> = () => {
               <View style={styles.inputUnderline} />
             </View>
 
+            {/* Full Name Input */}
+            <View style={styles.inputGroup}>
+              <SmallText style={styles.label}>Location</SmallText>
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your restaurant address"
+                  placeholderTextColor="#AAAAAA"
+                  value={fullName}
+                  onChangeText={setFullName}
+                />
+              </View>
+              <View style={styles.inputUnderline} />   
+            </View>
+
             {/* Password Requirements */}
-            <View style={styles.passwordRequirements}>
+            {/* <View style={styles.passwordRequirements}>
               <SmallText style={styles.requirementLabel}>At least:</SmallText>
               <View style={styles.requirementsRow}>
                 <View style={styles.requirement}>
@@ -217,12 +232,12 @@ const SignupScreen: React.FC<SignupScreenProps> = () => {
                   </SmallText>
                 </View>
               </View>
-            </View>
+            </View> */}
 
             {/* Signup Button */}
             <TouchableOpacity 
               style={styles.signupButton}
-              onPress={() => router.push('/(tabs)')}
+              onPress={() => router.push('/VerifyMail')}
             >
               <SemiBoldBlueText style={styles.buttonText}>
                 Create your account
@@ -234,7 +249,7 @@ const SignupScreen: React.FC<SignupScreenProps> = () => {
               <MediumText style={styles.loginText}>
                 Already have an account?{" "}
               </MediumText>
-              <TouchableOpacity>
+              <TouchableOpacity onPress={() => router.push('/Login')}>
                 <MediumText style={styles.loginLink}>Sign In</MediumText>
               </TouchableOpacity>
             </View>
