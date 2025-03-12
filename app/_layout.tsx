@@ -5,6 +5,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { View } from "react-native";
 import "react-native-reanimated";
+import Toast from "react-native-toast-message";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -46,8 +47,16 @@ export default function RootLayout() {
         <Stack.Screen name="MoreDetails" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="order" options={{ headerShown: false }} />
+        <Stack.Screen name="orderDetail" options={{ headerShown: false }} />
+        <Stack.Screen name="AddMenu" options={{ headerShown: false }} />
+        <Stack.Screen name="withdraw" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="withdrawalSuccess"
+          options={{ headerShown: false }}
+        />
       </Stack>
       <StatusBar style="auto" />
+      <Toast />
     </View>
   );
 }

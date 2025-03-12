@@ -110,7 +110,7 @@ export default function VerifyMail() {
         />
       </View>
       <TouchableOpacity
-        onPress={() => router.push("/SignUp")}
+        onPress={() => router.push("/Login")}
         style={{
           flexDirection: "row",
           marginTop: -10,

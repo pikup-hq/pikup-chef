@@ -44,9 +44,14 @@ export default function index() {
     loadData();
   }, []);
 
-  const filteredOrders = orders.filter((order) => order.status === activeTab);
+  const filteredOrders = orders.filter((order) => {
+    if (activeTab === "ongoing") {
+      return order.status !== "done";
+    }
+    return order.status === "done";
+  });
   const completedOrdersCount = orders.filter(
-    (order) => order.status === "completed"
+    (order) => order.status === "done"
   ).length;
 
   return (
@@ -61,6 +66,7 @@ export default function index() {
           borderBottomWidth: 1,
           borderBottomColor: "#F4F4F4",
           marginTop: 10,
+          paddingBottom: 10
         }}
       >
         <Image
@@ -80,11 +86,8 @@ export default function index() {
             {userData.email}
           </SmallText>
         </View>
-        <TouchableOpacity style={{ marginRight: 16 }}>
-          <MapPin size={24} color="#000000" />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.push("/notifications")}>
-          <Bell size={24} color="#000000" />
+        <TouchableOpacity onPress={() => router.push("/order")}>
+          <Bell size={20} color="#000000" />
         </TouchableOpacity>
       </View>
 
@@ -92,8 +95,7 @@ export default function index() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ marginTop: 20 }}
       >
-        {/* Welcome Banner */}
-        <Banner/>
+        <Banner />
 
         {/* Orders Section */}
         <View>
@@ -103,7 +105,7 @@ export default function index() {
               justifyContent: "space-between",
               alignItems: "center",
               marginBottom: 16,
-              marginTop: 20
+              marginTop: 20,
             }}
           >
             {/* Tabs */}
@@ -123,7 +125,7 @@ export default function index() {
                       color: activeTab === "ongoing" ? "#FFFFFF" : "#000000",
                     }}
                   >
-                    ongoing
+                    Ongoing
                   </SmallText>
                 </View>
               </TouchableOpacity>
@@ -153,7 +155,7 @@ export default function index() {
             {/* View All */}
             <View>
               <TouchableOpacity onPress={() => router.push("/order")}>
-                <SmallText style={{ color: COLORS.primary, fontSize: 12 }}>
+                <SmallText style={{ color: COLORS.secondary, fontSize: 12 }}>
                   View all
                 </SmallText>
               </TouchableOpacity>
@@ -170,12 +172,17 @@ export default function index() {
               filteredOrders.map((order) => (
                 <OrderItem
                   key={order.id}
-                  foodName={order.foodName}
-                  description={order.description}
-                  price={order.price}
-                  image={order.image}
+                  foodName={order.items[0].name}
+                  description={order.items[0].description}
+                  price={order.items[0].price}
+                  image={order.items[0].image}
                   timestamp={order.timestamp}
-                  // onViewOrder={() => router.push(`/orders/${order.id}`)}
+                  onViewOrder={() =>
+                    router.push({
+                      pathname: "/orderDetail",
+                      params: { id: `${order.id}` },
+                    })
+                  }
                 />
               ))
             )}
