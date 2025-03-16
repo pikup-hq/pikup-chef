@@ -1,3 +1,5 @@
+import useAuthStore from "@/store/authStore";
+import * as SecureStore from "expo-secure-store";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -27,6 +29,27 @@ export default function RootLayout() {
   if (!loaded) {
     return null;
   }
+
+  const token = useAuthStore((state) => state.token);
+  const setUserInfo = useAuthStore((state) => state.setUserInfo);
+  const setToken = useAuthStore((state) => state.setToken);
+
+  useEffect(() => {
+    getUserInfo();
+  }, [token]);
+
+  const getUserInfo = async () => {
+    try {
+      const tok = await SecureStore.getItemAsync("token");
+      const user = await SecureStore.getItemAsync("user");
+      setUserInfo(user);
+      if (tok) {
+        setToken(tok);
+      }
+    } catch (e) {
+      console.log("Error while getting user data", e);
+    }
+  };
 
   return (
     <View style={{ flex: 1 }}>

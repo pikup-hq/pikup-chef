@@ -19,7 +19,8 @@ import { DefaultButton } from "@/components/common/Button";
 // import { useLocation } from "../../lib/hooks/use-location";
 // import { UseAuth } from "../../lib/hooks/auth";
 import Spinner from "react-native-loading-spinner-overlay";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
+import { UseAuth } from "@/hooks/apis";
 // import useAuthStore from "../../store/authStore";
 
 export default function VerifyMail() {
@@ -29,6 +30,8 @@ export default function VerifyMail() {
 
   const [timerRemaining, setTimerRemaining] = useState(30);
   const [isResendButtonDisabled, setIsResendButtonDisabled] = useState(true);
+
+  const { mail } = useLocalSearchParams();
 
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -49,28 +52,30 @@ export default function VerifyMail() {
       setPinReady(false);
     }
   }, [code]);
-  let otp = code;
 
-  // const mail = useAuthStore((state) => state.mail);
-  // const { isLoading, isSuccess, verifyUser, resendOtp } = UseAuth();
+  let otp = Number(code);
 
-  // const handleOtp = () => {
-  //   verifyUser(otp, mail);
-  // };
+  const { isLoading, isSuccess, verifyUser, resendOtp } = UseAuth();
 
-  // if (isSuccess) {
+  const handleOtp = () => {
+    const emailAddress = Array.isArray(mail) ? mail[0] : mail;
+    verifyUser(otp, emailAddress);
+  };
 
-  // }
+  if (isSuccess) {
+    router.push("/MoreDetails")
+  }
 
   const handleResendOtp = () => {
-    // resendOtp();
+    const emailAddress = Array.isArray(mail) ? mail[0] : mail;
+    resendOtp(emailAddress);
     setIsResendButtonDisabled(true);
     setTimerRemaining(30);
   };
 
   return (
     <AppSafeAreaView>
-      <Spinner color="#181C2E" visible={false} />
+      <Spinner color="#181C2E" visible={isLoading} />
       <TouchableOpacity
         onPress={() => {
           router.back();
@@ -93,7 +98,7 @@ export default function VerifyMail() {
       <MediumText
         style={{ textAlign: "center", color: COLORS.greyText, fontSize: 13 }}
       >
-        Enter the verification code we sent to pikuphq@gmail.com
+        Enter the verification code we sent to {mail}
       </MediumText>
       <View
         style={{
@@ -122,7 +127,7 @@ export default function VerifyMail() {
       </TouchableOpacity>
       <View style={{ marginTop: 100 }}>
         <DefaultButton
-          onPress={() => router.push("/(tabs)")}
+          onPress={handleOtp}
           style={{ marginTop: 35 }}
           title="Verify"
         />

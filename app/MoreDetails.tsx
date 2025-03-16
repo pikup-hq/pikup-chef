@@ -26,6 +26,14 @@ import OpeningTimesSelector, {
   DAYS,
   TIME_OPTIONS,
 } from "@/components/OpeningTimeSelector";
+import { Ionicons } from "@expo/vector-icons";
+import { ErrorToast, SuccessToast } from "@/components/common/Toasts";
+
+const CITIES = [
+  { value: "ikole", label: "Ikole" },
+  { value: "ado", label: "Ado" },
+  { value: "oye", label: "Oye" },
+];
 
 type ImageInfo = {
   uri: string;
@@ -36,11 +44,13 @@ type ImageInfo = {
 export default function MoreDetailsScreen() {
   const router = useRouter();
   const [description, setDescription] = useState("");
-  const [vendorType, setVendorType] = useState("");
+  const [address, setAddress] = useState("");
   const [profileImage, setProfileImage] = useState<ImageInfo | null>(null);
-  const [coverImage, setCoverImage] = useState<ImageInfo | null>(null);
-  const [productImages, setProductImages] = useState<ImageInfo[]>([]);
   const [restaurantName, setRestaurantName] = useState("");
+
+  const [showPicker, setShowPicker] = useState(false);
+  const [selectedCity, setSelectedCity] = useState("");
+  const [selectedCityName, setSelectedCityName] = useState("");
 
   const pickImage = async (
     setImage: (image: ImageInfo | null) => void,
@@ -76,10 +86,7 @@ export default function MoreDetailsScreen() {
   const handleAddOpeningTime = () => {
     // Validate inputs
     if (!selectedDay || !openTime || !closeTime) {
-      Alert.alert(
-        "Missing Information",
-        "Please select day, opening and closing times"
-      );
+      ErrorToast("Please select day, opening and closing times");
       return;
     }
 
@@ -118,30 +125,32 @@ export default function MoreDetailsScreen() {
   const handleSubmit = () => {
     // Validate all required fields
     if (!profileImage) {
-      Alert.alert("Missing Information", "Please add a profile image");
+      ErrorToast("Please add a profile image");
       return;
     }
 
     if (!restaurantName) {
-      Alert.alert("Missing Information", "Please add a restaurant name");
+      ErrorToast("Please add a restaurant name");
       return;
     }
 
     if (!description) {
-      Alert.alert("Missing Information", "Please add a description");
+      ErrorToast("Please add a description");
       return;
     }
 
-    if (!coverImage) {
-      Alert.alert("Missing Information", "Please add a cover image");
+    if (!address) {
+      ErrorToast("Please add an address");
       return;
     }
 
     if (openingTimes.length === 0) {
-      Alert.alert(
-        "Missing Information",
-        "Please add at least one opening time"
-      );
+      ErrorToast("Please add at least one opening time");
+      return;
+    }
+
+    if (!selectedCity) {
+      ErrorToast("Please select a city");
       return;
     }
 
@@ -150,7 +159,8 @@ export default function MoreDetailsScreen() {
       profileImage,
       restaurantName,
       description,
-      coverImage,
+      address,
+      city: selectedCity,
       businessHours: openingTimes.map((time) => ({
         day: time.day,
         openingTime: time.openTime,
@@ -165,9 +175,8 @@ export default function MoreDetailsScreen() {
     );
 
     // Mock API call
-    Alert.alert("Success", "Business details saved successfully", [
-      { text: "OK", onPress: () => router.push("/(tabs)") },
-    ]);
+    SuccessToast("Business details saved successfully");
+    router.push("/(tabs)");
   };
 
   // Helper function to get day label
@@ -284,48 +293,86 @@ export default function MoreDetailsScreen() {
           <View style={{ height: 1, backgroundColor: COLORS.primary }} />
         </View>
 
-        {/* Cover Image Upload */}
+        {/* Description Input */}
         <View style={{ marginBottom: Spacing * 2 }}>
           <MediumText style={{ marginBottom: Spacing, color: "#000000" }}>
-            Cover Image
+            Add Address
           </MediumText>
-          <TouchableOpacity
+          <TextInput
             style={{
-              height: 150,
-              backgroundColor: "#F4F4F4",
-              borderRadius: 8,
-              alignItems: "center",
-              justifyContent: "center",
-              padding: Spacing,
+              fontFamily: "Sen-Regular",
+              fontSize: 14,
+              color: "#000000",
+              paddingVertical: Spacing,
             }}
-            onPress={() => pickImage(setCoverImage)}
-          >
-            {coverImage ? (
-              <Image
-                source={{ uri: coverImage.uri }}
-                style={{ width: "100%", height: "100%", borderRadius: 8 }}
-              />
-            ) : (
-              <>
-                <Camera size={24} color={COLORS.primary} />
-                <SmallText
-                  style={{ color: COLORS.primary, marginTop: Spacing }}
-                >
-                  Upload image
-                </SmallText>
-                <SmallText
-                  style={{
-                    color: "#AAAAAA",
-                    textAlign: "center",
-                    marginTop: Spacing / 2,
-                  }}
-                >
-                  Allowed formats jpg &mp4 less than 5mb
-                </SmallText>
-              </>
-            )}
-          </TouchableOpacity>
+            placeholder="e.g school road, lagos"
+            placeholderTextColor="#AAAAAA"
+            value={description}
+            onChangeText={setDescription}
+            multiline
+          />
+          <View style={{ height: 1, backgroundColor: COLORS.primary }} />
         </View>
+
+        <MediumText
+          style={{ fontSize: 14, fontWeight: "500", marginBottom: 8 }}
+        >
+          City
+        </MediumText>
+        <TouchableOpacity
+          onPress={() => setShowPicker(true)}
+          style={{
+            backgroundColor: "#F5F5F5",
+            borderRadius: 8,
+            padding: 16,
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 20,
+          }}
+        >
+          <MediumText
+            style={{ color: selectedCity ? "black" : "#999", fontSize: 14 }}
+          >
+            {selectedCityName || "Please select your city"}
+          </MediumText>
+          <Ionicons name="chevron-down" size={20} color="#999" />
+        </TouchableOpacity>
+
+        {showPicker && (
+          <View
+            style={{
+              backgroundColor: "white",
+              borderRadius: 8,
+              borderWidth: 1,
+              borderColor: "#eee",
+              marginBottom: 20,
+              position: "absolute",
+              top: "100%",
+              left: 0,
+              right: 0,
+              zIndex: 1000,
+            }}
+          >
+            {CITIES.map((city) => (
+              <TouchableOpacity
+                key={city.value}
+                onPress={() => {
+                  setSelectedCity(city.value);
+                  setSelectedCityName(city.label);
+                  setShowPicker(false);
+                }}
+                style={{
+                  padding: 16,
+                  borderBottomWidth: 1,
+                  borderBottomColor: "#eee",
+                }}
+              >
+                <MediumText style={{}}>{city.label}</MediumText>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
         <MediumText style={{ marginBottom: Spacing * 2 }}>
           Business Hours

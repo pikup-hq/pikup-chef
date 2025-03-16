@@ -16,29 +16,30 @@ import { DefaultButton } from "@/components/common/Button";
 import { ErrorToast } from "@/components/common/Toasts";
 import Spinner from "react-native-loading-spinner-overlay";
 import { router } from "expo-router";
+import { UseAuth } from "@/hooks/apis";
 
 export default function Login() {
   // const { navigate, replace, goBack } = UseNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  // const { isLoading, isSuccess, login } = UseAuth();
+  const { isLoading, isSuccess, login } = UseAuth();
 
-  // const handleLogin = () => {
-  //   if (email === "" || password === "") {
-  //     ErrorToast("Please fill in all required fields.");
-  //   } else {
-  //     login(email, password);
-  //   }
-  // };
+  const handleLogin = () => {
+    if (email === "" || password === "") {
+      ErrorToast("Please fill in all required fields.");
+    } else {
+      login(email, password);
+    }
+  };
 
-  // if (isSuccess) {
-  //   replace("Tab");
-  // }
+  if (isSuccess) {
+    router.replace('/(tabs)')
+  }
 
   return (
     <AppSafeAreaView>
-      <Spinner color="#181C2E" visible={false} />
+      <Spinner color="#181C2E" visible={isLoading} />
       <SemiBoldText style={{ fontSize: 23, marginTop: 30, marginBottom: 2 }}>
         Welcome Back!
       </SemiBoldText>
@@ -60,7 +61,7 @@ export default function Login() {
         <DefaultButton
           style={{ marginTop: 35 }}
           title="Login"
-          onPress={() => router.push('/MoreDetails')}
+          onPress={handleLogin}
         />
         <TouchableOpacity
           onPress={() => router.push('/SignUp')}

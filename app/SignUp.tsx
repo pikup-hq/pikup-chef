@@ -1,38 +1,45 @@
 import React, { useState } from "react";
-import { 
-  StyleSheet, 
-  View, 
-  TextInput, 
-  TouchableOpacity, 
+import {
+  StyleSheet,
+  View,
+  TextInput,
+  TouchableOpacity,
   ScrollView,
   Pressable,
   KeyboardAvoidingView,
-  Platform
+  Platform,
 } from "react-native";
 import { AppSafeAreaView } from "../components/common/AppViews";
-import { 
-  LargeText, 
-  MediumText, 
-  SmallText, 
-  SemiBoldBlueText 
+import {
+  LargeText,
+  MediumText,
+  SmallText,
+  SemiBoldBlueText,
 } from "../components/common/AppText";
 import COLORS from "../constants/colors";
 import Spacing from "../constants/Spacing";
 import { Eye, EyeOff } from "react-native-feather";
 import { router } from "expo-router";
+import { UseAuth } from "@/hooks/apis";
+import { isEmailValid } from "@/utilities/helper";
+import { ErrorToast } from "@/components/common/Toasts";
+import Spinner from "react-native-loading-spinner-overlay";
 
 type SignupScreenProps = {
   navigation: any;
 };
 
 const SignupScreen: React.FC<SignupScreenProps> = () => {
-  const [fullName, setFullName] = useState<string>("");
+  const [firstName, setFirstName] = useState<string>("");
+  const [lastName, setLastName] = useState<string>("");
+
   const [email, setEmail] = useState<string>("");
   const [phoneNumber, setPhoneNumber] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [confirmPassword, setConfirmPassword] = useState<string>("");
   const [showPassword, setShowPassword] = useState<boolean>(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
+  const [showConfirmPassword, setShowConfirmPassword] =
+    useState<boolean>(false);
 
   // Password validation
   const hasUppercase = /[A-Z]/.test(password);
@@ -49,40 +56,90 @@ const SignupScreen: React.FC<SignupScreenProps> = () => {
     setShowConfirmPassword(!showConfirmPassword);
   };
 
-  const handleSignup = () => {
-    // Implement signup logic here
-    console.log("Signing up...");
+  const { isLoading, isSuccess, error, data, signup } = UseAuth();
+
+  const handleSignUp = async () => {
+    if (
+      email === "" ||
+      phoneNumber === "" ||
+      password === "" ||
+      confirmPassword === ""
+    ) {
+      ErrorToast("Please fill in all required fields.");
+    } else if (!isEmailValid(email)) {
+      ErrorToast("Please enter a valid email address.");
+    } else if (password !== confirmPassword) {
+      ErrorToast("Password and Confirm Password must match.");
+    } else if (password.length < 8) {
+      ErrorToast("Password must be 8+ Characters.");
+    } else if (!hasUppercase) {
+      ErrorToast("Password must contain a Upper Case.");
+    } else if (!hasLowercase) {
+      ErrorToast("Password must contain a Lower Case.");
+    } else if (!hasNumber) {
+      ErrorToast("Password must contain a number.");
+    } else {
+      console.log("Email:", email);
+      console.log("Name:", firstName, lastName);
+      console.log("Phone:", phoneNumber);
+      console.log("Password:", password);
+
+      signup(email, password, firstName, lastName, phoneNumber);
+    }
   };
+
+  if (isSuccess) {
+    router.push({
+      pathname: "/VerifyMail",
+      params: { mail: `${email}` },
+    });
+  }
 
   return (
     <AppSafeAreaView style={styles.container}>
+      <Spinner color="#181C2E" visible={isLoading} />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        <ScrollView 
+        <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
           <View style={styles.formContainer}>
             <LargeText style={styles.title}>Create your account</LargeText>
             <MediumText style={styles.subtitle}>
-              Join Pikup's Vendor and revolutionize your food delivery experience
+              Join Pikup's Vendor and revolutionize your food delivery
+              experience
             </MediumText>
 
-            {/* Full Name Input */}
+            {/* First Name Input */}
             <View style={styles.inputGroup}>
-              <SmallText style={styles.label}>Full name</SmallText>
+              <SmallText style={styles.label}>First name</SmallText>
               <View style={styles.inputContainer}>
                 <TextInput
                   style={styles.input}
-                  placeholder="Enter first and last name"
+                  placeholder="Enter first name"
                   placeholderTextColor="#AAAAAA"
-                  value={fullName}
-                  onChangeText={setFullName}
+                  value={firstName}
+                  onChangeText={setFirstName}
                 />
               </View>
-              <View style={styles.inputUnderline} />   
+              <View style={styles.inputUnderline} />
+            </View>
+            {/* Last Name Input */}
+            <View style={styles.inputGroup}>
+              <SmallText style={styles.label}>Last name</SmallText>
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter last name"
+                  placeholderTextColor="#AAAAAA"
+                  value={lastName}
+                  onChangeText={setLastName}
+                />
+              </View>
+              <View style={styles.inputUnderline} />
             </View>
 
             {/* Email Input */}
@@ -130,7 +187,7 @@ const SignupScreen: React.FC<SignupScreenProps> = () => {
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
                 />
-                <TouchableOpacity 
+                <TouchableOpacity
                   onPress={togglePasswordVisibility}
                   style={styles.eyeIcon}
                 >
@@ -156,7 +213,7 @@ const SignupScreen: React.FC<SignupScreenProps> = () => {
                   onChangeText={setConfirmPassword}
                   secureTextEntry={!showConfirmPassword}
                 />
-                <TouchableOpacity 
+                <TouchableOpacity
                   onPress={toggleConfirmPasswordVisibility}
                   style={styles.eyeIcon}
                 >
@@ -170,74 +227,10 @@ const SignupScreen: React.FC<SignupScreenProps> = () => {
               <View style={styles.inputUnderline} />
             </View>
 
-            {/* Full Name Input */}
-            <View style={styles.inputGroup}>
-              <SmallText style={styles.label}>Location</SmallText>
-              <View style={styles.inputContainer}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter your restaurant address"
-                  placeholderTextColor="#AAAAAA"
-                  value={fullName}
-                  onChangeText={setFullName}
-                />
-              </View>
-              <View style={styles.inputUnderline} />   
-            </View>
-
-            {/* Password Requirements */}
-            {/* <View style={styles.passwordRequirements}>
-              <SmallText style={styles.requirementLabel}>At least:</SmallText>
-              <View style={styles.requirementsRow}>
-                <View style={styles.requirement}>
-                  <SmallText style={[
-                    styles.requirementText,
-                    hasUppercase && styles.requirementMet
-                  ]}>
-                    Uppercase Letter
-                  </SmallText>
-                </View>
-                <View style={styles.requirement}>
-                  <SmallText style={[
-                    styles.requirementText,
-                    hasLowercase && styles.requirementMet
-                  ]}>
-                    Lowercase Letter
-                  </SmallText>
-                </View>
-                <View style={styles.requirement}>
-                  <SmallText style={[
-                    styles.requirementText,
-                    hasSpecialChar && styles.requirementMet
-                  ]}>
-                    Special Character
-                  </SmallText>
-                </View>
-              </View>
-              <View style={styles.requirementsRow}>
-                <View style={styles.requirement}>
-                  <SmallText style={[
-                    styles.requirementText,
-                    hasNumber && styles.requirementMet
-                  ]}>
-                    1 Number
-                  </SmallText>
-                </View>
-                <View style={styles.requirement}>
-                  <SmallText style={[
-                    styles.requirementText,
-                    hasMinLength && styles.requirementMet
-                  ]}>
-                    8 Character
-                  </SmallText>
-                </View>
-              </View>
-            </View> */}
-
             {/* Signup Button */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.signupButton}
-              onPress={() => router.push('/VerifyMail')}
+              onPress={handleSignUp}
             >
               <SemiBoldBlueText style={styles.buttonText}>
                 Create your account
@@ -249,7 +242,7 @@ const SignupScreen: React.FC<SignupScreenProps> = () => {
               <MediumText style={styles.loginText}>
                 Already have an account?{" "}
               </MediumText>
-              <TouchableOpacity onPress={() => router.push('/Login')}>
+              <TouchableOpacity onPress={() => router.push("/Login")}>
                 <MediumText style={styles.loginLink}>Sign In</MediumText>
               </TouchableOpacity>
             </View>
@@ -323,7 +316,7 @@ const styles = StyleSheet.create({
   },
   requirementText: {
     color: "#555555",
-    fontSize: 11
+    fontSize: 11,
   },
   requirementMet: {
     color: "#FE7622",

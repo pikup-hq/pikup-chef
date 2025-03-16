@@ -16,11 +16,32 @@ import { DefaultButton } from "@/components/common/Button";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { router } from "expo-router";
+import { UseAuth } from "@/hooks/apis";
+import { ErrorToast } from "@/components/common/Toasts";
 
 export default function ReachUs() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
+
+  const { reachUs, isLoading } = UseAuth();
+
+  const handleSubmit = async () => {
+    if (!email || !message) {
+      ErrorToast("Please fill in all fields");
+      return;
+    }
+
+    try {
+      await reachUs(message, email);
+      // Clear form after successful submission
+      setName("");
+      setEmail("");
+      setMessage("");
+    } catch (error) {
+      console.error("Failed to send message:", error);
+    }
+  };
 
   return (
     <AppView>
@@ -64,9 +85,16 @@ export default function ReachUs() {
             style={{ marginBottom: 16 }}
             title="Message"
             placeholder="Tell us more"
-            onChangeText={(val: string) => setName(val)}
+            onChangeText={(val: string) => setMessage(val)}
+            value={message}
+            multiline
           />
-          <DefaultButton style={{ marginTop: 50 }} title="Save Changes" />
+          <DefaultButton
+            style={{ marginTop: 50 }}
+            title="Send Message"
+            onPress={handleSubmit}
+            loading={isLoading}
+          />
         </View>
         <View>
           <View
