@@ -7,6 +7,7 @@ import {
   ScrollView,
   Image,
   Alert,
+  Modal,
 } from "react-native";
 import { ArrowLeft, Bell, Camera } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
@@ -40,6 +41,11 @@ type ImageInfo = {
   type?: string;
   fileName?: string;
 };
+
+interface City {
+  value: string;
+  label: string;
+}
 
 export default function MoreDetailsScreen() {
   const router = useRouter();
@@ -122,6 +128,32 @@ export default function MoreDetailsScreen() {
   };
 
   // Handle form submission
+  // const handleSubmit = async () => {
+  //   try {
+  //     if (!profileImage || !restaurantName || !description || !address || !selectedCity || openingTimes.length === 0) {
+  //       ErrorToast("Please fill in all required fields");
+  //       return;
+  //     }
+
+  //     const restaurantDetails = {
+  //       profileImage,
+  //       restaurantName,
+  //       description,
+  //       address,
+  //       city: selectedCity,
+  //       businessHours: openingTimes.map(time => ({
+  //         day: time.day,
+  //         openingTime: time.openTime,
+  //         closingTime: time.closeTime,
+  //       }))
+  //     };
+
+  //     await addRestaurantDetails(restaurantDetails);
+  //     router.push("/(tabs)");
+  //   } catch (error) {
+  //     console.error("Failed to add restaurant details:", error);
+  //   }
+  // };
   const handleSubmit = () => {
     // Validate all required fields
     if (!profileImage) {
@@ -221,7 +253,7 @@ export default function MoreDetailsScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ padding: Spacing }}
+        contentContainerStyle={{ paddingVertical: Spacing }}
       >
         {/* Profile Image */}
         <TouchableOpacity
@@ -308,7 +340,7 @@ export default function MoreDetailsScreen() {
             placeholder="e.g school road, lagos"
             placeholderTextColor="#AAAAAA"
             value={description}
-            onChangeText={setDescription}
+            onChangeText={setAddress}
             multiline
           />
           <View style={{ height: 1, backgroundColor: COLORS.primary }} />
@@ -339,40 +371,77 @@ export default function MoreDetailsScreen() {
           <Ionicons name="chevron-down" size={20} color="#999" />
         </TouchableOpacity>
 
-        {showPicker && (
-          <View
+        <Modal
+          visible={showPicker}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowPicker(false)}
+        >
+          <TouchableOpacity
             style={{
-              backgroundColor: "white",
-              borderRadius: 8,
-              borderWidth: 1,
-              borderColor: "#eee",
-              marginBottom: 20,
-              position: "absolute",
-              top: "100%",
-              left: 0,
-              right: 0,
-              zIndex: 1000,
+              flex: 1,
+              backgroundColor: "rgba(0,0,0,0.5)",
+              justifyContent: "flex-end",
             }}
+            activeOpacity={1}
+            onPress={() => setShowPicker(false)}
           >
-            {CITIES.map((city) => (
-              <TouchableOpacity
-                key={city.value}
-                onPress={() => {
-                  setSelectedCity(city.value);
-                  setSelectedCityName(city.label);
-                  setShowPicker(false);
-                }}
+            <View
+              style={{
+                backgroundColor: "white",
+                borderTopLeftRadius: 20,
+                borderTopRightRadius: 20,
+                padding: 16,
+                maxHeight: "50%",
+              }}
+            >
+              <View
                 style={{
-                  padding: 16,
-                  borderBottomWidth: 1,
-                  borderBottomColor: "#eee",
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 16,
                 }}
               >
-                <MediumText style={{}}>{city.label}</MediumText>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
+                <MediumText style={{ fontSize: 16, fontWeight: "600" }}>
+                  Select City
+                </MediumText>
+                <TouchableOpacity onPress={() => setShowPicker(false)}>
+                  <Ionicons name="close" size={24} color="#000" />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView>
+                {CITIES.map((city) => (
+                  <TouchableOpacity
+                    key={city.value}
+                    onPress={() => {
+                      setSelectedCity(city.value);
+                      setSelectedCityName(city.label);
+                      setShowPicker(false);
+                    }}
+                    style={{
+                      padding: 16,
+                      borderBottomWidth: 1,
+                      borderBottomColor: "#eee",
+                      flexDirection: "row",
+                      alignItems: "center",
+                    }}
+                  >
+                    <MediumText style={{ flex: 1 }}>{city.label}</MediumText>
+                    {selectedCity === city.value && (
+                      <Ionicons
+                        name="checkmark"
+                        size={24}
+                        color={COLORS.primary}
+                      />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          </TouchableOpacity>
+        </Modal>
 
         <MediumText style={{ marginBottom: Spacing * 2 }}>
           Business Hours
@@ -447,7 +516,8 @@ export default function MoreDetailsScreen() {
             ))}
           </View>
         )}
-        <DefaultButton onPress={handleSubmit} title="Continue" />
+        {/* <DefaultButton onPress={handleSubmit} title="Continue" /> */}
+        <DefaultButton onPress={() => router.push("/Login")} title="Continue" />
       </ScrollView>
     </AppSafeAreaView>
   );

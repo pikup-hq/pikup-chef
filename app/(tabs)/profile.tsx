@@ -20,6 +20,7 @@ import {
 import { responsiveText } from "@/utilities/helper";
 import { userData } from "@/hooks/data/user";
 import { router } from "expo-router";
+import useAuthStore from "@/store/authStore";
 
 export default function ProfileScreen() {
   const handleLogout = () => {
@@ -28,6 +29,9 @@ export default function ProfileScreen() {
   };
 
   const [openModal, setOpenModal] = useState(false);
+  const user = useAuthStore((state) => state.userInfo);
+
+  let userInfo = JSON.parse(user);
 
   return (
     <AppView>
@@ -168,7 +172,7 @@ export default function ProfileScreen() {
           />
         </View>
         <SemiBoldText style={{ fontSize: responsiveText(17), marginTop: 5 }}>
-          {userData.businessName}
+          {userInfo.firstName + " " + userInfo.lastName}
         </SemiBoldText>
       </View>
 

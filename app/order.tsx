@@ -11,8 +11,13 @@ import {
 } from "@/components/common/AppText";
 import OrderItem from "../components/OrderItem";
 import NoDataView from "../components/NoDataView";
-import { ordersData, Order } from "@/hooks/data/order";
+import { Order } from "@/hooks/data/order";
 import COLORS from "../constants/colors";
+import { UseAuth } from "@/hooks/apis";
+import useAuthStore from "@/store/authStore";
+import axios from "axios";
+import { BASE_URL } from "@/config";
+import { ErrorToast } from "@/components/common/Toasts";
 
 type OrderStatus = "pending" | "completed";
 
@@ -22,17 +27,27 @@ export default function OrdersScreen() {
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
 
-  // Simulate loading data
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      setOrders(ordersData);
-      setLoading(false);
-    };
+  const user = useAuthStore((state) => state.userInfo);
+  const token = useAuthStore((state) => state.token);
+  const userInfo = JSON.parse(user);
 
-    loadData();
+  const getOrders = () => {
+    setLoading(true);
+
+    axios
+      .get(`${BASE_URL}/orders/vendor/${userInfo._id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((response) => {
+        console.log("Orders:", response.data);
+        setOrders(response.data || []);
+      })
+      .catch(() => ErrorToast("Failed to fetch orders"))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    getOrders();
   }, []);
 
   const filteredOrders = orders.filter((order) => {
@@ -134,16 +149,19 @@ export default function OrdersScreen() {
         ) : (
           filteredOrders.map((order) => (
             <OrderItem
-              key={order.id}
+              key={order._id}
               foodName={order.items[0].name}
               description={order.items[0].description}
               price={order.items[0].price}
               image={order.items[0].image}
-              timestamp={order.timestamp}
+              timestamp={order.createdAt}
               onViewOrder={() =>
                 router.push({
                   pathname: "/orderDetail",
-                  params: { id: `${order.id}` },
+                  params: {
+                    id: order._id,
+                    orderData: JSON.stringify(order), // Pass the full order data
+                  },
                 })
               }
             />

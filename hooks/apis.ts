@@ -9,6 +9,7 @@ import {
 import useAuthStore from "@/store/authStore";
 import * as SecureStore from "expo-secure-store";
 import { router } from "expo-router";
+import { registerForPushNotifications } from "./notification";
 
 export const UseAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -19,6 +20,7 @@ export const UseAuth = () => {
   const setUserInfo = useAuthStore((state) => state.setUserInfo);
   const setToken = useAuthStore((state) => state.setToken);
   const token = useAuthStore((state) => state.token);
+  const userInfo = useAuthStore((state) => state.userInfo);
 
   const signup = async (
     email: string,
@@ -30,106 +32,101 @@ export const UseAuth = () => {
     setIsLoading(true);
     setIsSuccess(false);
 
-    let user_role = "vendor";
+    try {
+      const existingToken = await SecureStore.getItemAsync("deviceToken");
+      let deviceToken;
 
-    let data = {
-      email,
-      password,
-      firstName,
-      lastName,
-      phone,
-      user_role,
-    };
+      if (!existingToken) {
+        deviceToken = await registerForPushNotifications();
+        if (deviceToken) {
+          await SecureStore.setItemAsync("deviceToken", deviceToken);
+        }
+        console.log("New Device Token Generated:", deviceToken);
+      } else {
+        deviceToken = existingToken;
+        console.log("Using Existing Device Token:", deviceToken);
+      }
 
-    let config = {
-      method: "post",
-      url: `${BASE_URL}/auth/register`,
-      data,
-    };
+      let user_role = "vendor";
+      let data = {
+        email,
+        password,
+        firstName,
+        lastName,
+        phone,
+        user_role,
+        deviceToken,
+      };
 
-    axios
-      .request(config)
-      .then((response) => {
-        const res = JSON.parse(JSON.stringify(response.data));
-        SuccessToast(res.message);
+      let config = {
+        method: "post",
+        url: `${BASE_URL}/auth/register`,
+        data,
+      };
 
-        console.log("RESPONSE:", res);
-        console.log("SUCCESS");
-
-        setIsSuccess(true);
-        setIsLoading(false);
-      })
-      .catch((error) => {
-        setIsLoading(true);
-
-        const response = error.response.data;
-
-        ErrorToast(response.error);
-        setError(response.error);
-
-        console.log(response.error);
-        setIsLoading(false);
-      });
+      const response = await axios.request(config);
+      const res = JSON.parse(JSON.stringify(response.data));
+      SuccessToast(res.message);
+      setIsSuccess(true);
+      setIsLoading(false);
+    } catch (error: any) {
+      setIsLoading(true);
+      const response = error.response?.data;
+      ErrorToast(response?.error || "Registration failed");
+      setError(response?.error);
+      console.log(response?.error);
+      setIsLoading(false);
+    }
   };
 
   const login = async (email: string, password: string) => {
-    setIsLoading(true);
-    setIsSuccess(false);
+    try {
+      setIsLoading(true);
+      setIsSuccess(false);
 
-    console.log(email);
-    console.log(password);
+      console.log("Login attempt:", { email });
 
-    let data = {
-      email,
-      password,
-    };
+      const config = {
+        method: "post",
+        url: `${BASE_URL}/auth/login`,
+        data: { email, password },
+      };
 
-    let config = {
-      method: "post",
-      url: `${BASE_URL}/auth/login`,
-      data,
-    };
+      const response = await axios.request(config);
 
-    axios
-      .request(config)
-      .then((response) => {
-        if (response.data.user_verified === false) {
-          console.log("Verified?:", response.data?.user_verified);
-          WarningToast("Verify your Email address");
-          router.push({
-            pathname: "/VerifyMail",
-            params: { mail: `${email}` },
-          });
-        } else {
-          let token = response.data.token;
-          let user = response.data;
+      if (response.data.user_verified === false) {
+        console.log("Verified?:", response.data?.user_verified);
+        WarningToast("Verify your Email address");
+        router.push({
+          pathname: "/VerifyMail",
+          params: { mail: email },
+        });
+        return;
+      }
 
-          SecureStore.setItemAsync("token", token);
-          SecureStore.setItemAsync("user", JSON.stringify(user));
+      let token = response.data.token;
+      let user = response.data;
 
-          console.log(token);
-          console.log(response.data.user.addresses);
-          console.log(user);
+      await SecureStore.setItemAsync("token", token);
+      await SecureStore.setItemAsync("user", JSON.stringify(user));
 
-          console.log(JSON.stringify(user.email));
+      setUserInfo(JSON.stringify(user));
+      setToken(token);
 
-          setUserInfo(JSON.stringify(user));
-          setToken(token);
+      console.log("Auth token:", token);
+      console.log("User data:", user);
 
-          SuccessToast("Login successful");
-
-          setIsLoading(false);
-          setIsSuccess(true);
-        }
-      })
-      .catch((error) => {
-        ErrorToast(`${error.response.data.error}`);
-        console.log(error.response);
-        setIsLoading(false);
-      });
+      SuccessToast(`Welcome back Chef ${user.firstName}!`);
+      setIsSuccess(true);
+    } catch (error: any) {
+      ErrorToast(error.response?.data?.error || "Login failed");
+      console.error("Login error:", error.response?.data);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const verifyUser = async (otp: number, mail: string) => {
+  const verifyUser = async (otp: any, mail: string) => {
     console.log("OTP:", otp);
     console.log("E-mail:", mail);
 
@@ -214,15 +211,246 @@ export const UseAuth = () => {
     }
   };
 
+  const getOrders = async () => {
+    setIsLoading(true);
+    setIsSuccess(false);
+
+    const config = {
+      method: "get",
+      url: `${BASE_URL}order/vendor/${userInfo._id}`,
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    };
+
+    try {
+      const response = await axios.request(config);
+      setData(response.data.order);
+      setIsLoading(false);
+      setIsSuccess(true);
+      return response.data;
+    } catch (error: any) {
+      ErrorToast(error.response?.data?.error || "Failed to fetch orders");
+      setIsLoading(false);
+      console.error("Get Orders Error:", error.response?.data);
+      throw error;
+    }
+  };
+
+  const getMenu = async () => {
+    setIsLoading(true);
+    setIsSuccess(false);
+
+    const config = {
+      method: "get",
+      url: `${BASE_URL}/product/get/${userInfo._id}`,
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    };
+
+    try {
+      const response = await axios.request(config);
+      setData(response.data.data);
+      setIsLoading(false);
+      setIsSuccess(true);
+      return response.data;
+    } catch (error: any) {
+      ErrorToast(error.response?.data?.error || "Failed to fetch menu");
+      setIsLoading(false);
+      console.error("Get Menu Error:", error.response?.data);
+      throw error;
+    }
+  };
+
+  interface MenuData {
+    name: string;
+    description: string;
+    price: any;
+    image?: string;
+  }
+
+  const addMenu = async (menuData: MenuData) => {
+    setIsLoading(true);
+    setIsSuccess(false);
+
+    const formData = new FormData();
+    formData.append("name", menuData.name);
+    formData.append("description", menuData.description);
+    formData.append("price", menuData.price);
+    formData.append("available", "false"); // Add available as false by default
+
+    if (menuData.image) {
+      const response = await fetch(menuData.image);
+      const blob = await response.blob();
+      formData.append("image", blob, "menu_image.jpg");
+    }
+
+    const config = {
+      method: "post",
+      url: `${BASE_URL}/menu`,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "multipart/form-data",
+      },
+      data: formData,
+    };
+
+    try {
+      const response = await axios.request(config);
+      SuccessToast(`${menuData.name} added successfully`);
+      setIsLoading(false);
+      setIsSuccess(true);
+      return response.data;
+    } catch (error: any) {
+      ErrorToast(error.response?.data?.error || "Failed to add menu item");
+      setIsLoading(false);
+      console.error("Add Menu Error:", error.response?.data);
+      throw error;
+    }
+  };
+
+  const editMenu = async (menuId: any, menuData: any) => {
+    setIsLoading(true);
+    setIsSuccess(false);
+
+    const formData = new FormData();
+    formData.append("name", menuData.name);
+    formData.append("description", menuData.description);
+    formData.append("price", menuData.price);
+
+    if (menuData.image) {
+      const response = await fetch(menuData.image);
+      const blob = await response.blob();
+      formData.append("image", blob, "menu_image.jpg");
+    }
+
+    const config = {
+      method: "put",
+      url: `${BASE_URL}/menu/${menuId}`,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "multipart/form-data",
+      },
+      data: formData,
+    };
+
+    try {
+      const response = await axios.request(config);
+      SuccessToast("Menu item updated successfully");
+      setIsLoading(false);
+      setIsSuccess(true);
+      return response.data;
+    } catch (error: any) {
+      ErrorToast(error.response?.data?.error || "Failed to update menu item");
+      setIsLoading(false);
+      console.error("Edit Menu Error:", error.response?.data);
+      throw error;
+    }
+  };
+
+  const getTransactions = async (id: any) => {
+    setIsLoading(true);
+    setIsSuccess(false);
+
+    const config = {
+      method: "get",
+      url: `${BASE_URL}/transactions/wallet-transaction/vendor/${id}`,
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    };
+
+    axios
+      .request(config)
+      .then((response) => {
+        setData(response.data);
+        setIsLoading(false);
+        setIsSuccess(true);
+        return response.data;
+      })
+      .catch((error) => {
+        ErrorToast(
+          error.response?.data?.error || "Failed to fetch transactions"
+        );
+        console.log("Transaction error:", error.response);
+        setIsLoading(false);
+      });
+  };
+
+  interface BusinessHours {
+    day: string;
+    openingTime: string;
+    closingTime: string;
+  }
+
+  interface RestaurantDetails {
+    profileImage: string;
+    restaurantName: string;
+    description: string;
+    address: string;
+    city: string;
+    businessHours: BusinessHours[];
+  }
+
+  const addRestaurantDetails = async (details: RestaurantDetails) => {
+    setIsLoading(true);
+    setIsSuccess(false);
+
+    const formData = new FormData();
+    formData.append("restaurantName", details.restaurantName);
+    formData.append("description", details.description);
+    formData.append("address", details.address);
+    formData.append("city", details.city);
+    formData.append("businessHours", JSON.stringify(details.businessHours));
+
+    if (details.profileImage) {
+      const response = await fetch(details.profileImage);
+      const blob = await response.blob();
+      formData.append("profileImage", blob, "profile_image.jpg");
+    }
+
+    const config = {
+      method: "post",
+      url: `${BASE_URL}/restaurant`,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "multipart/form-data",
+      },
+      data: formData,
+    };
+
+    try {
+      const response = await axios.request(config);
+      SuccessToast("Restaurant details added successfully");
+      setIsLoading(false);
+      setIsSuccess(true);
+      return response.data;
+    } catch (error: any) {
+      ErrorToast(
+        error.response?.data?.error || "Failed to add restaurant details"
+      );
+      setIsLoading(false);
+      console.error("Add Restaurant Error:", error.response?.data);
+      throw error;
+    }
+  };
+
   return {
     isLoading,
     isSuccess,
     error,
-    data,
+    data, // This is the shared state that components can use
     signup,
     login,
     verifyUser,
     resendOtp,
     reachUs,
+    getOrders,
+    getMenu,
+    addMenu,
+    editMenu,
+    getTransactions,
+    addRestaurantDetails,
   };
 };

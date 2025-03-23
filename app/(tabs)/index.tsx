@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   ScrollView,
@@ -6,7 +6,7 @@ import {
   Image,
   ImageBackground,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { MapPin, Bell } from "lucide-react-native";
 import Spinner from "react-native-loading-spinner-overlay";
 import { AppSafeAreaView } from "@/components/common/AppViews";
@@ -19,30 +19,77 @@ import {
 import OrderItem from "@/components/OrderItem";
 import NoDataView from "@/components/NoDataView";
 import { userData } from "@/hooks/data/user";
-import { ordersData, Order } from "@/hooks/data/order";
+import { Order } from "@/hooks/data/order";
 import COLORS from "../../constants/colors";
 import Banner from "@/assets/svg/banner.svg";
+import useAuthStore from "@/store/authStore";
+import { UseAuth } from "@/hooks/apis";
+import axios from "axios";
+import { BASE_URL } from "@/config";
+import { ErrorToast } from "@/components/common/Toasts";
+import { format } from "date-fns";
+import { AdvertisementBanner } from "@/components/AdvertismentBanner";
+import { vendorAdvertisements } from "@/hooks/data/advert";
+
+// Add this helper function at the top of the file
+const formatAmount = (amount: number): string => {
+  return new Intl.NumberFormat("en-NG", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+};
+
+// Add this interface for type safety
+// interface OrderDetails {
+//   id: string;
+//   items: Array<{
+//     name: string;
+//     description: string;
+//     price: number;
+//     image: string;
+//   }>;
+//   createdAt: string;
+//   status: string;
+//   // Add other order properties you need
+// }
 
 export default function index() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"ongoing" | "completed">(
     "ongoing"
   );
-  const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Simulate loading data
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      setOrders(ordersData);
-      setLoading(false);
-    };
+  const user = useAuthStore((state) => state.userInfo);
+  const token = useAuthStore((state) => state.token);
+  const userInfo = JSON.parse(user);
 
-    loadData();
-  }, []);
+  const getOrders = () => {
+    setLoading(true);
+    console.log("Token:", token);
+    console.log("ID:", userInfo._id);
+
+    axios
+      .get(`${BASE_URL}/order/vendor/${userInfo._id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((response) => {
+        console.log("Orders:", response.data);
+        setOrders(response.data.order || []);
+      })
+      .catch((error) => {
+        ErrorToast("Failed to fetch orders");
+        console.error("Get Orders Error:", error.response?.data);
+      })
+      .finally(() => setLoading(false));
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      getOrders();
+    }, [])
+  );
 
   const filteredOrders = orders.filter((order) => {
     if (activeTab === "ongoing") {
@@ -53,6 +100,26 @@ export default function index() {
   const completedOrdersCount = orders.filter(
     (order) => order.status === "done"
   ).length;
+
+  const handleViewOrder = (order: Order) => {
+    router.push({
+      pathname: "/orderDetail",
+      params: {
+        id: order._id,
+        orderData: JSON.stringify(order), // Serialize order data
+      },
+    });
+  };
+
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return format(date, "MMM dd, yyyy • HH:mm");
+    } catch (error) {
+      console.log("Date parsing error:", error);
+      return dateString;
+    }
+  };
 
   return (
     <AppSafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
@@ -66,7 +133,7 @@ export default function index() {
           borderBottomWidth: 1,
           borderBottomColor: "#F4F4F4",
           marginTop: 10,
-          paddingBottom: 10
+          paddingBottom: 10,
         }}
       >
         <Image
@@ -80,10 +147,10 @@ export default function index() {
         />
         <View style={{ flex: 1 }}>
           <SemiBoldText style={{ marginBottom: -2 }}>
-            {userData.businessName}
+            {userInfo.firstName + " " + userInfo.lastName}
           </SemiBoldText>
           <SmallText style={{ color: "#666666", fontSize: 12 }}>
-            {userData.email}
+            {userInfo.email}
           </SmallText>
         </View>
         <TouchableOpacity onPress={() => router.push("/order")}>
@@ -95,7 +162,14 @@ export default function index() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ marginTop: 20 }}
       >
-        <Banner />
+        {/* <Banner /> */}
+        <AdvertisementBanner
+          advertisements={vendorAdvertisements}
+          autoScroll={true}
+          scrollInterval={5000}
+          height={150}
+          borderRadius={12}
+        />
 
         {/* Orders Section */}
         <View>
@@ -171,16 +245,19 @@ export default function index() {
             ) : (
               filteredOrders.map((order) => (
                 <OrderItem
-                  key={order.id}
-                  foodName={order.items[0].name}
-                  description={order.items[0].description}
-                  price={order.items[0].price}
-                  image={order.items[0].image}
-                  timestamp={order.timestamp}
+                  key={order._id}
+                  foodName={order.items[0].product.name}
+                  description={order.items[0].product.description}
+                  price={formatAmount(order.items[0].product.price)}
+                  image={order.items[0].product.image}
+                  timestamp={formatDate(order.createdAt)}
                   onViewOrder={() =>
                     router.push({
                       pathname: "/orderDetail",
-                      params: { id: `${order.id}` },
+                      params: {
+                        id: order._id,
+                        orderData: JSON.stringify(order), // Pass single order instead of array
+                      },
                     })
                   }
                 />

@@ -6,7 +6,8 @@ import {
   Alert,
   ImageBackground,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
+import { useCallback } from "react";
 import {
   ArrowLeft,
   Bell,
@@ -24,14 +25,59 @@ import {
   SmallText,
   SemiBoldText,
 } from "@/components/common/AppText";
-import { userData, Transaction } from "@/hooks/data/user";
+// import { userData, Transaction } from "@/hooks/data/user";
 import COLORS from "../../constants/colors";
+import { UseAuth } from "@/hooks/apis";
+import useAuthStore from "@/store/authStore";
+import { BASE_URL } from "@/config";
+import axios from "axios";
+import { ErrorToast } from "@/components/common/Toasts";
+import { format } from "date-fns";
+
+// Add this helper function at the top of the file
+const formatAmount = (amount: number): string => {
+  return new Intl.NumberFormat("en-NG", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+};
+
+// Update the Transaction interface to match API response
+interface Transaction {
+  _id: string;
+  reference: string;
+  status: string;
+  user: string;
+  vendor: string;
+  orderId: string;
+  amount: number;
+  channel: string;
+  others: { data: { created_at: string } };
+  type?: "credit" | "debit"; // Add this for UI rendering
+  description?: string; // Add this for UI rendering
+  date?: string; // Add this for UI rendering
+}
+
+interface WalletData {
+  balance: number;
+  transactions: Transaction[];
+}
 
 interface TransactionItemProps {
   transaction: Transaction;
 }
 
 const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return format(date, "MMM dd, yyyy • HH:mm");
+    } catch (error) {
+      console.log("Date parsing error:", error);
+      return dateString;
+    }
+  };
+
   return (
     <View
       style={{
@@ -53,11 +99,12 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
           marginRight: 12,
         }}
       >
-        {transaction.type === "credit" ? (
+        <MoveUpIcon size={15} color="green" />
+        {/* {transaction.type === "credit" ? (
           <MoveUpIcon size={15} color="green" />
         ) : (
           <MoveDown size={15} color="red" />
-        )}
+        )} */}
       </View>
 
       <View style={{ flex: 1 }}>
@@ -68,10 +115,10 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
               ellipsizeMode="tail"
               style={{ fontSize: 13 }}
             >
-              {transaction.description} {transaction.recipient}
+              Transaction {transaction.orderId}
             </SmallText>
             <SmallText style={{ color: "#666666", marginTop: 2, fontSize: 12 }}>
-              {transaction.date}
+              {formatDate(transaction.others.data.created_at)}
             </SmallText>
           </View>
           <View style={{ alignItems: "flex-end" }}>
@@ -82,7 +129,7 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
               }}
             >
               {transaction.type === "credit" ? "+" : "-"}₦
-              {transaction.amount.toFixed(2)}
+              {formatAmount(transaction.amount)}
             </MediumText>
             <SmallText
               style={{
@@ -101,39 +148,57 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
 
 export default function WalletScreen() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
   const [showBalance, setShowBalance] = useState(true);
-  const [walletData, setWalletData] = useState(userData.wallet);
+  const [balance, setBalance] = useState(10000);
+  const [wallet, setWallet] = useState<Transaction[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Simulate API fetch
-  useEffect(() => {
-    const fetchWalletData = async () => {
-      try {
-        setLoading(true);
-        // Simulate API call
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-        setWalletData(userData.wallet);
-      } catch (error) {
-        Alert.alert("Error", "Failed to load wallet data");
-      } finally {
-        setLoading(false);
-      }
-    };
+  const user = useAuthStore((state) => state.userInfo);
+  const token = useAuthStore((state) => state.token);
+  const userInfo = JSON.parse(user);
 
-    fetchWalletData();
-  }, []);
+  const getTransactions = () => {
+    setIsLoading(true);
 
+    axios
+      .get(
+        `${BASE_URL}/transactions/wallet-transaction/vendor/${userInfo._id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      )
+      .then((response) => {
+        console.log("Transactions:", response.data);
+        // Add type field to each transaction
+        const transactionsWithType = response.data.data.map(
+          (transaction: any) => ({
+            ...transaction,
+            type: "credit", // Setting all transactions as credit for now
+          })
+        );
+        setWallet(transactionsWithType || []);
+      })
+      .catch(() => ErrorToast("Failed to fetch transactions"))
+      .finally(() => setIsLoading(false));
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      getTransactions();
+    }, [])
+  );
+
+  // Update handleWithdraw to use actual balance
   const handleWithdraw = () => {
     router.push({
       pathname: "/withdraw",
-      params: { walletBalance: `${walletData.balance}` },
+      params: { walletBalance: `${balance}` },
     });
-    router.push("/withdraw");
   };
 
   return (
     <AppSafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
-      <Spinner visible={loading} overlayColor="rgba(0, 0, 0, 0.7)" />
+      <Spinner visible={isLoading} overlayColor="rgba(0, 0, 0, 0.7)" />
 
       {/* Header */}
       <View
@@ -195,7 +260,7 @@ export default function WalletScreen() {
             }}
           >
             <LargeText style={{ color: "#FFFFFF", fontSize: 20 }}>
-              {showBalance ? `₦${walletData.balance.toFixed(2)}` : "****"}
+              {showBalance ? `₦${formatAmount(balance)}` : "****"}
             </LargeText>
             <TouchableOpacity
               style={{
@@ -229,8 +294,8 @@ export default function WalletScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingTop: 5 }}
         >
-          {walletData.transactions.map((transaction) => (
-            <TransactionItem key={transaction.id} transaction={transaction} />
+          {wallet.map((transaction) => (
+            <TransactionItem key={transaction._id} transaction={transaction} />
           ))}
         </ScrollView>
       </View>

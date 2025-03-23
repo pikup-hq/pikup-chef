@@ -29,12 +29,12 @@ export default function Login() {
     if (email === "" || password === "") {
       ErrorToast("Please fill in all required fields.");
     } else {
-      login(email, password);
+      login(email.toLowerCase(), password);
     }
   };
 
   if (isSuccess) {
-    router.replace('/(tabs)')
+    router.replace("/(tabs)");
   }
 
   return (
@@ -64,7 +64,7 @@ export default function Login() {
           onPress={handleLogin}
         />
         <TouchableOpacity
-          onPress={() => router.push('/SignUp')}
+          onPress={() => router.push("/SignUp")}
           style={{
             flexDirection: "row",
             justifyContent: "center",

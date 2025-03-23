@@ -18,59 +18,41 @@ import {
   SmallText,
   SemiBoldText,
 } from "@/components/common/AppText";
-import { menuData, MenuItem } from "@/hooks/data/menu";
+import { MenuItem } from "@/hooks/data/menu";
 import COLORS from "@/constants/colors";
 import { ErrorToast, SuccessToast } from "@/components/common/Toasts";
-
-interface FormData {
-  name: string;
-  description: string;
-  price: string;
-  image: string | null;
-}
+import { UseAuth } from "@/hooks/apis";
+import axios from "axios";
+import useAuthStore from "@/store/authStore";
+import { BASE_URL } from "@/config";
 
 export default function EditMenuScreen() {
   const router = useRouter();
-  const { id } = useLocalSearchParams();
-  const isEdit = id !== "new";
-
-  const [loading, setLoading] = useState(false);
+  const { id, menuData } = useLocalSearchParams();
   const [submitting, setSubmitting] = useState(false);
-  const [formData, setFormData] = useState<FormData>({
-    name: "",
-    description: "",
-    price: "",
-    image: null,
-  });
+
+  // Individual state variables
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [price, setPrice] = useState("");
+  const [image, setImage] = useState<string | null>(null);
+
+  const [menuId, setMenuId] = useState<string | null>(null);
+
+  const user = useAuthStore((state) => state.userInfo);
+  const token = useAuthStore((state) => state.token);
+  const userInfo = JSON.parse(user);
 
   useEffect(() => {
-    if (isEdit) {
-      const loadMenuItem = async () => {
-        try {
-          setLoading(true);
-          // Simulate API call
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-          const item = menuData.find((m: MenuItem) => m.id === id);
-          if (item) {
-            setFormData({
-              name: item.name,
-              description: item.description,
-              price: item.price.toString(),
-              image: item.image,
-            });
-          }
-        } catch (error) {
-          ErrorToast("Failed to load menu item");
-          router.back();
-        } finally {
-          SuccessToast("Menu item loaded successfully");
-          setLoading(false);
-        }
-      };
-
-      loadMenuItem();
+    if (menuData) {
+      const parsedMenu = JSON.parse(menuData as string);
+      setName(parsedMenu.name);
+      setDescription(parsedMenu.description);
+      setPrice(parsedMenu.price.toString());
+      setImage(parsedMenu.image);
+      setMenuId(parsedMenu._id); // Set menuId from parsed data
     }
-  }, [id, isEdit]);
+  }, [menuData]);
 
   const pickImage = async () => {
     try {
@@ -82,10 +64,7 @@ export default function EditMenuScreen() {
       });
 
       if (!result.canceled) {
-        setFormData((prev) => ({
-          ...prev,
-          image: result.assets[0].uri,
-        }));
+        setImage(result.assets[0].uri);
       }
     } catch (error) {
       ErrorToast("Failed to pick image");
@@ -93,39 +72,53 @@ export default function EditMenuScreen() {
   };
 
   const handleSubmit = async () => {
-    // Validate form
-    if (!formData.name.trim()) {
-      ErrorToast("Please enter a name");
+    if (!name || !description || !price || !image) {
+      ErrorToast("Please fill all required fields and upload an image");
       return;
     }
-    if (!formData.description.trim()) {
-      ErrorToast("Please enter a description");
-      return;
-    }
-    if (!formData.price.trim()) {
-      ErrorToast("Please enter a price");
-      return;
-    }
-    if (!formData.image) {
-      ErrorToast("Please upload an image");
-      return;
-    }
+
+    setSubmitting(true);
 
     try {
-      setSubmitting(true);
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // Create payload from state values
+      const menuPayload = {
+        name,
+        description,
+        price: Number(price),
+        image,
+        available: true,
+      };
 
-      Alert.alert(
-        "Success",
-        `Menu item ${isEdit ? "updated" : "created"} successfully`,
-        [{ text: "OK", onPress: () => router.back() }]
-      );
-    } catch (error) {
-      Alert.alert(
-        "Error",
-        `Failed to ${isEdit ? "update" : "create"} menu item`
-      );
+      // Log payload for debugging
+      console.log("Menu Payload:", {
+        ...menuPayload,
+        isEdit: id !== "new",
+      });
+
+      const endpoint =
+        id !== "new"
+          ? `${BASE_URL}/product/edit/${menuId}`
+          : `${BASE_URL}/product`;
+
+      const response = await axios({
+        method: id !== "new" ? "put" : "post",
+        url: endpoint,
+        data: menuPayload,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      console.log("API Response:", response.data);
+      SuccessToast(id !== "new" ? "Menu updated" : "Menu added");
+      router.back();
+    } catch (error: any) {
+      console.error("Operation failed:", {
+        error: error.response?.data,
+        status: error.response?.status,
+      });
+      ErrorToast(error.response?.data?.error || "Operation failed");
     } finally {
       setSubmitting(false);
     }
@@ -133,7 +126,7 @@ export default function EditMenuScreen() {
 
   return (
     <AppSafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
-      <Spinner visible={loading} overlayColor="rgba(0, 0, 0, 0.7)" />
+      <Spinner visible={submitting} overlayColor="rgba(0, 0, 0, 0.7)" />
 
       {/* Header */}
       <View
@@ -155,10 +148,12 @@ export default function EditMenuScreen() {
 
         <View style={{ flex: 1 }}>
           <SemiBoldText style={{ fontSize: 16 }}>
-            {isEdit ? "Edit" : "Add Menu"}
+            {id !== "new" ? "Edit" : "Add Menu"}
           </SemiBoldText>
           <SmallText style={{ color: "#666666", fontSize: 13 }}>
-            {isEdit ? "Make some changes in your menu" : "Add a new menu item"}
+            {id !== "new"
+              ? "Make some changes in your menu"
+              : "Add a new menu item"}
           </SmallText>
         </View>
       </View>
@@ -175,9 +170,9 @@ export default function EditMenuScreen() {
             marginBottom: 24,
           }}
         >
-          {formData.image ? (
+          {image ? (
             <Image
-              source={{ uri: formData.image }}
+              source={{ uri: image }}
               style={{
                 width: 120,
                 height: 120,
@@ -235,10 +230,8 @@ export default function EditMenuScreen() {
               }}
             >
               <TextInput
-                value={formData.name}
-                onChangeText={(text) =>
-                  setFormData((prev) => ({ ...prev, name: text }))
-                }
+                value={name}
+                onChangeText={setName}
                 placeholder="Jollof Rice and Chicken"
                 style={{
                   flex: 1,
@@ -263,10 +256,8 @@ export default function EditMenuScreen() {
               }}
             >
               <TextInput
-                value={formData.description}
-                onChangeText={(text) =>
-                  setFormData((prev) => ({ ...prev, description: text }))
-                }
+                value={description}
+                onChangeText={setDescription}
                 placeholder="Description"
                 multiline
                 numberOfLines={3}
@@ -294,10 +285,8 @@ export default function EditMenuScreen() {
               }}
             >
               <TextInput
-                value={formData.price}
-                onChangeText={(text) =>
-                  setFormData((prev) => ({ ...prev, price: text }))
-                }
+                value={price}
+                onChangeText={setPrice}
                 placeholder="₦3000"
                 keyboardType="numeric"
                 style={{
@@ -313,7 +302,7 @@ export default function EditMenuScreen() {
       </ScrollView>
 
       {/* Save Button */}
-      <View style={{ padding: 16 }}>
+      <View style={{ paddingVertical: 16 }}>
         <TouchableOpacity
           style={{
             backgroundColor: "#1A1A1A",

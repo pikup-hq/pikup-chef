@@ -20,23 +20,24 @@ export default function RootLayout() {
     "Sen-SemiBold": require("../assets/fonts/BeVietnamPro-SemiBold.ttf"),
   });
 
-  useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
-
-  if (!loaded) {
-    return null;
-  }
-
   const token = useAuthStore((state) => state.token);
   const setUserInfo = useAuthStore((state) => state.setUserInfo);
   const setToken = useAuthStore((state) => state.setToken);
 
   useEffect(() => {
-    getUserInfo();
-  }, [token]);
+    const initializeApp = async () => {
+      if (loaded) {
+        await SplashScreen.hideAsync();
+        await getUserInfo();
+      }
+    };
+
+    initializeApp();
+  }, [loaded, token]);
+
+  if (!loaded) {
+    return null;
+  }
 
   const getUserInfo = async () => {
     try {
@@ -78,7 +79,7 @@ export default function RootLayout() {
           options={{ headerShown: false }}
         />
       </Stack>
-      <StatusBar style="auto" />
+      <StatusBar style="dark" />
       <Toast />
     </View>
   );

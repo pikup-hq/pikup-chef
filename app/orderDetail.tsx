@@ -16,7 +16,7 @@ import {
   SmallText,
   SemiBoldText,
 } from "@/components/common/AppText";
-import { ordersData, Order, OrderStatus } from "@/hooks/data/order";
+import { Order, OrderStatus } from "@/hooks/data/order";
 import COLORS from "@/constants/colors";
 import { User } from "iconsax-react-native";
 import { ErrorToast, SuccessToast } from "@/components/common/Toasts";
@@ -45,13 +45,12 @@ const getStageLabel = (stage: OrderStatus): string => {
 
 export default function OrderDetailsScreen() {
   const router = useRouter();
-  const { id } = useLocalSearchParams();
-  const [loading, setLoading] = useState(false);
+  const { id, orderData } = useLocalSearchParams();
   const [updatingStatus, setUpdatingStatus] = useState(false);
-
-  // Find order from dummy data
-  const order = ordersData.find((o) => o.id === id) as Order;
-  const [currentOrder, setCurrentOrder] = useState<Order>(order);
+  const [loading, setLoading] = useState(false);
+  const [currentOrder, setCurrentOrder] = useState<Order>(
+    JSON.parse(orderData as string)
+  );
 
   if (!currentOrder) {
     return (
@@ -66,19 +65,14 @@ export default function OrderDetailsScreen() {
   const handleUpdateStatus = async (newStatus: OrderStatus) => {
     try {
       setUpdatingStatus(true);
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
       setCurrentOrder((prev) => ({
         ...prev,
         status: newStatus,
       }));
-
-      // Here you would make the actual API call to update the order status
+      SuccessToast("Order status updated");
     } catch (error) {
       ErrorToast("Failed to update order status");
     } finally {
-      SuccessToast("Order status updated");
       setUpdatingStatus(false);
     }
   };
@@ -138,28 +132,6 @@ export default function OrderDetailsScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingTop: 16 }}
       >
-        {/* Customer Info */}
-        {/* <View style={{ marginBottom: 10 }}>
-          <View style={{}}>
-            <View
-              style={{ flexDirection: "row", alignItems: "center", gap: 5 }}
-            >
-              <MediumText style={{ fontSize: 15 }}>Name:</MediumText>
-              <SemiBoldText style={{ fontSize: 15 }}>
-                {currentOrder.customerName}
-              </SemiBoldText>
-            </View>
-          </View>
-        </View> */}
-
-        {/* Location */}
-        {/* <View style={{ marginBottom: 24 }}>
-          <MediumText style={{ fontSize: 15 }}>Location:</MediumText>
-          <SemiBoldText style={{ marginTop: 4, fontSize: 15 }}>
-            {currentOrder.location}
-          </SemiBoldText>
-        </View> */}
-
         {/* Order Items */}
         <View style={{ marginBottom: 15 }}>
           <SemiBoldText style={{ marginBottom: 12, fontSize: 13 }}>
@@ -167,7 +139,7 @@ export default function OrderDetailsScreen() {
           </SemiBoldText>
           {currentOrder.items.map((item) => (
             <View
-              key={item.id}
+              key={item.product.id}
               style={{
                 flexDirection: "row",
                 marginBottom: 16,
@@ -177,7 +149,7 @@ export default function OrderDetailsScreen() {
               }}
             >
               <Image
-                source={{ uri: item.image }}
+                source={{ uri: item.product.image }}
                 style={{
                   width: 60,
                   height: 60,
@@ -193,17 +165,17 @@ export default function OrderDetailsScreen() {
                   }}
                 >
                   <SemiBoldText style={{ fontSize: 15 }}>
-                    {item.name}
+                    {item.product.name}
                   </SemiBoldText>
                   <MediumText style={{ fontSize: 14 }}>
                     {item.quantity} {item.quantity > 1 ? "pieces" : "piece"}
                   </MediumText>
                 </View>
                 <SmallText style={{ color: "#666666", fontSize: 13 }}>
-                  {item.description}
+                  {item.product.description}
                 </SmallText>
                 <MediumText style={{ marginTop: 5, fontSize: 14 }}>
-                  ₦{item.price.toFixed(2)}
+                  ₦{item.product.price}
                 </MediumText>
               </View>
             </View>
@@ -238,9 +210,7 @@ export default function OrderDetailsScreen() {
               style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
             >
               <User size={16} color="#666666" />
-              <SmallText style={{ fontSize: 15 }}>
-                {currentOrder.rider.company}
-              </SmallText>
+              <SmallText style={{ fontSize: 15 }}>Pikup</SmallText>
             </View>
             <View
               style={{
@@ -251,7 +221,7 @@ export default function OrderDetailsScreen() {
             >
               <Phone size={16} color="#666666" />
               <SmallText style={{ marginLeft: 8, fontSize: 15 }}>
-                {currentOrder.rider.phone}
+                0808 851 3703
               </SmallText>
             </View>
           </View>

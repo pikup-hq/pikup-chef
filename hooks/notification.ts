@@ -9,10 +9,9 @@ export const registerForPushNotifications = async () => {
   try {
     if (!Device.isDevice) {
       console.warn("Push notifications are only supported on real devices.");
-      return;
+      return null;
     }
 
-    // Request permissions
     const { status: existingStatus } =
       await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
@@ -24,46 +23,40 @@ export const registerForPushNotifications = async () => {
 
     if (finalStatus !== "granted") {
       console.warn("Push notification permission denied.");
-      return;
+      return null;
     }
 
-    // Get Expo Push Token
     const projectId =
       Constants?.expoConfig?.extra?.eas?.projectId ??
       Constants?.easConfig?.projectId;
     if (!projectId) {
       console.error("Expo Project ID not found.");
-      return;
+      return null;
     }
 
     const pushTokenData = await Notifications.getExpoPushTokenAsync({
       projectId,
     });
-    const pushToken = pushTokenData.data;
-    console.log("Expo Push Token:", pushToken);
-
-    // Send token to backend
-    await sendPushTokenToBackend(pushToken);
+    console.log("Device Token Generated:", pushTokenData.data);
+    return pushTokenData.data;
   } catch (error) {
     console.error("Error registering for push notifications:", error);
+    return null;
   }
 };
 
 const sendPushTokenToBackend = async (pushToken: string) => {
-    let token = await SecureStore.getItemAsync("token");
+  let token = await SecureStore.getItemAsync("token");
 
   try {
-    const response = await fetch(
-      `${BASE_URL}/auth/save-device-token`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ pushToken }),
-      }
-    );
+    const response = await fetch(`${BASE_URL}/auth/save-device-token`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ pushToken }),
+    });
 
     if (!response.ok) {
       ErrorToast("Failed to save push token");

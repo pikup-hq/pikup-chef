@@ -53,7 +53,7 @@ export default function VerifyMail() {
     }
   }, [code]);
 
-  let otp = Number(code);
+  let otp = code;
 
   const { isLoading, isSuccess, verifyUser, resendOtp } = UseAuth();
 

@@ -10,9 +10,9 @@ import COLORS from "@/constants/colors";
 export interface OrderItemProps {
   foodName: string;
   description: string;
-  price: number;
+  price: any;
   image: string;
-  timestamp: string;
+  timestamp: any;
   onViewOrder?: () => void;
 }
 
@@ -59,10 +59,12 @@ const OrderItem: React.FC<OrderItemProps> = ({
               {description}
             </SmallText>
             <MediumText style={{ marginTop: 8, fontSize: 13 }}>
-              ₦{price.toFixed(2)}
+              ₦{price}
             </MediumText>
           </View>
-          <SmallText style={{ color: "#666666", fontSize: 12 }}>{timestamp}</SmallText>
+          <SmallText style={{ color: "#666666", fontSize: 12 }}>
+            {timestamp}
+          </SmallText>
         </View>
         <TouchableOpacity
           onPress={onViewOrder}

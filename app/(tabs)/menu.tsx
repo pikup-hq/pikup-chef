@@ -19,13 +19,19 @@ import {
   SemiBoldText,
 } from "@/components/common/AppText";
 import NoDataView from "@/components/NoDataView";
-import { menuData, MenuItem } from "@/hooks/data/menu";
+import { MenuItem } from "@/hooks/data/menu";
 import COLORS from "../../constants/colors";
-import { SuccessToast } from "@/components/common/Toasts";
+import { ErrorToast, SuccessToast } from "@/components/common/Toasts";
+import { UseAuth } from "@/hooks/apis";
+import useAuthStore from "@/store/authStore";
+import { useFocusEffect } from "expo-router";
+import { useCallback } from "react";
+import { BASE_URL } from "@/config";
+import axios from "axios";
 
 interface MenuItemProps {
   item: MenuItem;
-  onToggleAvailability: (id: string, newValue: boolean) => Promise<void>;
+  onToggleAvailability: (_id: string, newValue: boolean) => Promise<void>;
   onEdit: (id: string) => void;
   isUpdating: boolean;
 }
@@ -38,7 +44,7 @@ const MenuItemComponent: React.FC<MenuItemProps> = ({
 }) => {
   const handleToggle = async () => {
     try {
-      await onToggleAvailability(item.id, !item.isAvailable);
+      await onToggleAvailability(item._id, !item.available);
     } catch (error) {
       Alert.alert("Error", "Failed to update availability");
     }
@@ -83,20 +89,20 @@ const MenuItemComponent: React.FC<MenuItemProps> = ({
           <View style={{ alignItems: "flex-end" }}>
             <SmallText
               style={{
-                color: item.isAvailable ? "green" : "red",
+                color: item.available ? "green" : "red",
                 fontSize: 13,
               }}
             >
-              {item.isAvailable ? "Available" : "Unavailable"}
+              {item.available ? "Available" : "Unavailable"}
             </SmallText>
             <Switch
-              value={item.isAvailable}
+              value={item.available}
               onValueChange={handleToggle}
               disabled={isUpdating}
               trackColor={{ false: "#D1D1D1", true: `${COLORS.secondary}50` }}
-              thumbColor={item.isAvailable ? COLORS.secondary : "#F4F4F4"}
+              thumbColor={item.available ? COLORS.secondary : "#F4F4F4"}
             />
-            <TouchableOpacity onPress={() => onEdit(item.id)}>
+            <TouchableOpacity onPress={() => onEdit(item._id)}>
               <SmallText
                 style={{
                   color: COLORS.secondary,
@@ -120,46 +126,65 @@ export default function MenuScreen() {
   const [menu, setMenu] = useState<MenuItem[]>([]);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
-  // Simulate API fetch
-  useEffect(() => {
-    const fetchMenu = async () => {
-      try {
-        setLoading(true);
-        // Simulate API call
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-        setMenu(menuData);
-      } catch (error) {
-        Alert.alert("Error", "Failed to load menu");
-      } finally {
-        setLoading(false);
-      }
-    };
+  const user = useAuthStore((state) => state.userInfo);
+  const token = useAuthStore((state) => state.token);
+  const userInfo = JSON.parse(user);
 
-    fetchMenu();
-  }, []);
+  const getMenu = () => {
+    setLoading(true);
+
+    axios
+      .get(`${BASE_URL}/product/get/${userInfo._id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((response) => {
+        console.log("Menu:", response.data.data);
+        setMenu(response.data.data || []);
+      })
+      .catch(() => ErrorToast("Failed to fetch menu"))
+      .finally(() => setLoading(false));
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      getMenu();
+    }, [])
+  );
 
   const handleToggleAvailability = async (id: string, newValue: boolean) => {
-    try {
-      setUpdatingId(id);
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+    setUpdatingId(id);
 
-      setMenu((prevMenu) =>
-        prevMenu.map((item) =>
-          item.id === id ? { ...item, isAvailable: newValue } : item
-        )
-      );
-    } finally {
-      SuccessToast("Meal Availability Updated");
-      setUpdatingId(null);
-    }
+    axios
+      .put(
+        `${BASE_URL}/product/editAvailability`,
+        { menuId: id, available: newValue },
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      .then(() => {
+        setMenu((prev) =>
+          prev.map((item) =>
+            item._id === id ? { ...item, available: newValue } : item
+          )
+        );
+        SuccessToast("Menu availability updated");
+      })
+      .catch(() => ErrorToast("Failed to update availability"))
+      .finally(() => setUpdatingId(null));
   };
 
   const handleEdit = (id: string) => {
-    router.push({
-      pathname: "/AddMenu",
-      params: { id: `${id}` },
-    });
+    const menuItem = menu.find((item) => item._id === id);
+    if (menuItem) {
+      router.push({
+        pathname: "/AddMenu",
+        params: {
+          id: menuItem._id,
+          menuData: JSON.stringify(menuItem),
+        },
+      });
+    } else {
+      ErrorToast("Menu item not found");
+    }
   };
 
   const handleAddMenu = () => {
@@ -236,11 +261,11 @@ export default function MenuScreen() {
         >
           {menu.map((item) => (
             <MenuItemComponent
-              key={item.id}
+              key={item._id}
               item={item}
               onToggleAvailability={handleToggleAvailability}
               onEdit={handleEdit}
-              isUpdating={updatingId === item.id}
+              isUpdating={updatingId === item._id}
             />
           ))}
         </ScrollView>
