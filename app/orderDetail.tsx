@@ -227,6 +227,29 @@ export default function OrderDetailsScreen() {
           </View>
         </View>
 
+        {/* Reject Order Button */}
+        <View style={{ marginBottom: 24 }}>
+          <TouchableOpacity
+            style={{
+              backgroundColor: "red",
+              padding: 10,
+              borderRadius: 8,
+              alignItems: "center",
+              opacity: loading ? 0.7 : 1,
+            }}
+            onPress={handleRejectOrder}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <SemiBoldText style={{ color: "#FFFFFF" }}>
+                Reject Order
+              </SemiBoldText>
+            )}
+          </TouchableOpacity>
+        </View>
+
         {/* Order Stages */}
         <View>
           <MediumText style={{ marginBottom: 12 }}>Stage of order</MediumText>

@@ -84,12 +84,29 @@ export const UseAuth = () => {
       setIsLoading(true);
       setIsSuccess(false);
 
-      console.log("Login attempt:", { email });
+      // Get or generate device token
+      const existingToken = await SecureStore.getItemAsync("deviceToken");
+      let deviceToken;
+
+      if (!existingToken) {
+        deviceToken = await registerForPushNotifications();
+        if (deviceToken) {
+          await SecureStore.setItemAsync("deviceToken", deviceToken);
+        }
+        console.log("New Device Token Generated:", deviceToken);
+      } else {
+        deviceToken = existingToken;
+        console.log("Using Existing Device Token:", deviceToken);
+      }
 
       const config = {
         method: "post",
         url: `${BASE_URL}/auth/login`,
-        data: { email, password },
+        data: {
+          email,
+          password,
+          deviceToken,
+        },
       };
 
       const response = await axios.request(config);
