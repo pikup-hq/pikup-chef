@@ -22,18 +22,76 @@ import COLORS from "@/constants/colors";
 import Spacing from "@/constants/Spacing";
 import { DefaultButton } from "@/components/common/Button";
 import { ProfileAdd } from "iconsax-react-native";
-import OpeningTimesSelector, {
-  OpeningTime,
-  DAYS,
-  TIME_OPTIONS,
-} from "@/components/OpeningTimeSelector";
 import { Ionicons } from "@expo/vector-icons";
 import { ErrorToast, SuccessToast } from "@/components/common/Toasts";
+import { TimePicker } from "@/components/common/TimePicker";
+import useAuthStore from "@/store/authStore";
+import axios from "axios";
+import { BASE_URL } from "@/config";
+import Spinner from "react-native-loading-spinner-overlay";
+import * as SecureStore from "expo-secure-store";
+
+// Add these types at the top of the file
+type OperatingDays = {
+  Monday: boolean;
+  Tuesday: boolean;
+  Wednesday: boolean;
+  Thursday: boolean;
+  Friday: boolean;
+  Saturday: boolean;
+  Sunday: boolean;
+};
+
+type OperatingTime = {
+  openingTime: string;
+  closingTime: string;
+};
+
+const HOURS = [
+  "00:00",
+  "01:00",
+  "02:00",
+  "03:00",
+  "04:00",
+  "05:00",
+  "06:00",
+  "07:00",
+  "08:00",
+  "09:00",
+  "10:00",
+  "11:00",
+  "12:00",
+  "13:00",
+  "14:00",
+  "15:00",
+  "16:00",
+  "17:00",
+  "18:00",
+  "19:00",
+  "20:00",
+  "21:00",
+  "22:00",
+  "23:00",
+];
 
 const CITIES = [
   { value: "ikole", label: "Ikole" },
   { value: "ado", label: "Ado" },
   { value: "oye", label: "Oye" },
+];
+
+const OPERATIONS = [
+  { value: "food", label: "Food" },
+  { value: "supermarket", label: "Super Market" },
+  { value: "pharmacy", label: "Pharmacy" },
+  { value: "market", label: "Market" },
+  { value: "tech", label: "Tech" },
+  { value: "others", label: "Others" },
+];
+
+const STATES = [
+  { value: "ekiti", label: "Ekiti" },
+  { value: "osun", label: "Osun" },
 ];
 
 type ImageInfo = {
@@ -53,10 +111,24 @@ export default function MoreDetailsScreen() {
   const [address, setAddress] = useState("");
   const [profileImage, setProfileImage] = useState<ImageInfo | null>(null);
   const [restaurantName, setRestaurantName] = useState("");
+  const [website, setWebsite] = useState("");
+  const [state, setState] = useState("");
+
+  const [submitting, setSubmitting] = useState(false);
 
   const [showPicker, setShowPicker] = useState(false);
   const [selectedCity, setSelectedCity] = useState("");
   const [selectedCityName, setSelectedCityName] = useState("");
+  const [showOperationPicker, setShowOperationPicker] = useState(false);
+  const [operationType, setOperationType] = useState("");
+  const [operationName, setOperationName] = useState("");
+  const [showStatePicker, setShowStatePicker] = useState(false);
+  const [selectedState, setSelectedState] = useState("");
+  const [selectedStateName, setSelectedStateName] = useState("");
+
+  const user = useAuthStore((state) => state.userInfo);
+  const token = useAuthStore((state) => state.token);
+  const userInfo = JSON.parse(user);
 
   const pickImage = async (
     setImage: (image: ImageInfo | null) => void,
@@ -85,148 +157,115 @@ export default function MoreDetailsScreen() {
   const [openTime, setOpenTime] = useState<string>("");
   const [closeTime, setCloseTime] = useState<string>("");
 
-  // State for multiple opening times
-  const [openingTimes, setOpeningTimes] = useState<OpeningTime[]>([]);
+  // Replace the existing opening times state with these
+  const [operatingDays, setOperatingDays] = useState<OperatingDays>({
+    Monday: false,
+    Tuesday: false,
+    Wednesday: false,
+    Thursday: false,
+    Friday: false,
+    Saturday: false,
+    Sunday: false,
+  });
 
-  // Add current selection to the list
-  const handleAddOpeningTime = () => {
-    // Validate inputs
-    if (!selectedDay || !openTime || !closeTime) {
-      ErrorToast("Please select day, opening and closing times");
-      return;
-    }
+  const [operatingTime, setOperatingTime] = useState<OperatingTime>({
+    openingTime: "",
+    closingTime: "",
+  });
 
-    // Check if this day already exists
-    const existingIndex = openingTimes.findIndex(
-      (time) => time.day === selectedDay
-    );
-
-    if (existingIndex >= 0) {
-      // Update existing entry
-      const updatedTimes = [...openingTimes];
-      updatedTimes[existingIndex] = { day: selectedDay, openTime, closeTime };
-      setOpeningTimes(updatedTimes);
-    } else {
-      // Add new entry
-      setOpeningTimes([
-        ...openingTimes,
-        { day: selectedDay, openTime, closeTime },
-      ]);
-    }
-
-    // Reset form
-    setSelectedDay("default");
-    setOpenTime("");
-    setCloseTime("");
+  // Add toggle function for days
+  const toggleDay = (day: keyof OperatingDays) => {
+    setOperatingDays((prev) => ({
+      ...prev,
+      [day]: !prev[day],
+    }));
   };
 
-  // Remove an opening time
-  const handleRemoveOpeningTime = (index: number) => {
-    const updatedTimes = [...openingTimes];
-    updatedTimes.splice(index, 1);
-    setOpeningTimes(updatedTimes);
+  const handleSubmit = async () => {
+    if (
+      !profileImage ||
+      !description ||
+      !address ||
+      !selectedState ||
+      !selectedCity ||
+      !operationType
+    ) {
+      ErrorToast("Please fill all required fields");
+      return;
+    }
+
+    const hasSelectedDays = Object.values(operatingDays).some((day) => day);
+    if (!hasSelectedDays) {
+      ErrorToast("Please select at least one operating day");
+      return;
+    }
+
+    if (!operatingTime.openingTime || !operatingTime.closingTime) {
+      ErrorToast("Please set operating hours");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+
+      const payload = {
+        _id: userInfo._id,
+        avatar: profileImage.uri,
+        description,
+        address,
+        state: selectedState,
+        city: selectedCity,
+        operation: operationType,
+        website: website || "",
+        operatingDays,
+        operatingTime: {
+          openingTime: operatingTime.openingTime,
+          closingTime: operatingTime.closingTime,
+        },
+      };
+
+      console.log("Submitting payload:", payload);
+
+      const response = await axios({
+        method: "put",
+        url: `${BASE_URL}/user/edit-restaurant`,
+        data: payload,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      // Set moreDetails to true in SecureStore
+      await SecureStore.setItemAsync("moreDetails", "true");
+
+      router.push("/Login");
+      console.log("API Response:", response.data);
+      SuccessToast("Business details updated successfully");
+    } catch (error: any) {
+      console.error("Update failed:", error.response?.data);
+      ErrorToast(
+        error.response?.data?.message || "Failed to update business details"
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  // Handle form submission
-  // const handleSubmit = async () => {
-  //   try {
-  //     if (!profileImage || !restaurantName || !description || !address || !selectedCity || openingTimes.length === 0) {
-  //       ErrorToast("Please fill in all required fields");
-  //       return;
-  //     }
+  // Add these state variables
+  const [showOpeningTimePicker, setShowOpeningTimePicker] = useState(false);
+  const [showClosingTimePicker, setShowClosingTimePicker] = useState(false);
 
-  //     const restaurantDetails = {
-  //       profileImage,
-  //       restaurantName,
-  //       description,
-  //       address,
-  //       city: selectedCity,
-  //       businessHours: openingTimes.map(time => ({
-  //         day: time.day,
-  //         openingTime: time.openTime,
-  //         closingTime: time.closeTime,
-  //       }))
-  //     };
-
-  //     await addRestaurantDetails(restaurantDetails);
-  //     router.push("/(tabs)");
-  //   } catch (error) {
-  //     console.error("Failed to add restaurant details:", error);
-  //   }
-  // };
-  const handleSubmit = () => {
-    // Validate all required fields
-    if (!profileImage) {
-      ErrorToast("Please add a profile image");
-      return;
-    }
-
-    if (!restaurantName) {
-      ErrorToast("Please add a restaurant name");
-      return;
-    }
-
-    if (!description) {
-      ErrorToast("Please add a description");
-      return;
-    }
-
-    if (!address) {
-      ErrorToast("Please add an address");
-      return;
-    }
-
-    if (openingTimes.length === 0) {
-      ErrorToast("Please add at least one opening time");
-      return;
-    }
-
-    if (!selectedCity) {
-      ErrorToast("Please select a city");
-      return;
-    }
-
-    // If all validations pass, format and submit data
-    const formattedData = {
-      profileImage,
-      restaurantName,
-      description,
-      address,
-      city: selectedCity,
-      businessHours: openingTimes.map((time) => ({
-        day: time.day,
-        openingTime: time.openTime,
-        closingTime: time.closeTime,
-      })),
-    };
-
-    // Log formatted data
-    console.log(
-      "Submitting form data:",
-      JSON.stringify(formattedData, null, 2)
-    );
-
-    // Mock API call
-    SuccessToast("Business details saved successfully");
-    router.push("/(tabs)");
-  };
-
-  // Helper function to get day label
-  const getDayLabel = (value: string) => {
-    const day = DAYS.find((d) => d.value === value);
-    return day ? day.label : value;
-  };
-
-  // Helper function to get time label
-  const getTimeLabel = (value: string) => {
-    const time = TIME_OPTIONS.find((t) => t.value === value);
-    return time ? time.label : value;
+  // Add this helper function
+  const getAvailableClosingTimes = (openingTime: string) => {
+    if (!openingTime) return [];
+    const openingIndex = HOURS.indexOf(openingTime);
+    return HOURS.slice(openingIndex + 1);
   };
 
   return (
-    <AppSafeAreaView
-      style={{ flex: 1, backgroundColor: "#FFFFFF", paddingBottom: 20 }}
-    >
+    <AppSafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
+      <Spinner visible={submitting} overlayColor="rgba(0, 0, 0, 0.7)" />
       {/* Header */}
       <View
         style={{
@@ -246,9 +285,9 @@ export default function MoreDetailsScreen() {
           <ArrowLeft size={24} color="#000000" />
         </TouchableOpacity>
         <SemiBoldText style={{ fontSize: 16 }}>More details</SemiBoldText>
-        <TouchableOpacity style={{ padding: Spacing, marginRight: -Spacing }}>
-          <Bell size={24} color="#000000" />
-        </TouchableOpacity>
+        <TouchableOpacity
+          style={{ padding: Spacing, marginRight: -Spacing }}
+        ></TouchableOpacity>
       </View>
 
       <ScrollView
@@ -256,58 +295,59 @@ export default function MoreDetailsScreen() {
         contentContainerStyle={{ paddingVertical: Spacing }}
       >
         {/* Profile Image */}
-        <TouchableOpacity
-          style={{ alignSelf: "center", marginBottom: Spacing }}
-          onPress={() => pickImage(setProfileImage, { aspect: [1, 1] })}
-        >
-          {profileImage ? (
-            <Image
-              source={{ uri: profileImage.uri }}
-              style={{ width: 80, height: 80, borderRadius: 40 }}
-            />
-          ) : (
-            <View
-              style={{
-                width: 80,
-                height: 80,
-                borderRadius: 40,
-                backgroundColor: "#F4F4F4",
-                borderWidth: 1,
-                borderColor: COLORS.primary,
-                justifyContent: "center",
-                alignItems: "center",
-              }}
-            >
-              <ProfileAdd size={50} color={COLORS.primary} />
-            </View>
-          )}
-        </TouchableOpacity>
-
-        {/* Description Input */}
-        <View style={{ marginBottom: Spacing * 2 }}>
-          <MediumText style={{ marginBottom: Spacing, color: "#000000" }}>
-            Restaurant Name
+        <View style={{ alignItems: "center", marginBottom: Spacing * 2 }}>
+          <TouchableOpacity
+            style={{ marginBottom: Spacing }}
+            onPress={() => pickImage(setProfileImage, { aspect: [1, 1] })}
+          >
+            {profileImage ? (
+              <Image
+                source={{ uri: profileImage.uri }}
+                style={{
+                  width: 120,
+                  height: 120,
+                  borderRadius: 60,
+                  borderWidth: 2,
+                  borderColor: COLORS.primary,
+                }}
+              />
+            ) : (
+              <View
+                style={{
+                  width: 120,
+                  height: 120,
+                  borderRadius: 60,
+                  backgroundColor: "#F4F4F4",
+                  borderWidth: 2,
+                  borderColor: COLORS.primary,
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                <ProfileAdd size={60} color={COLORS.primary} />
+                <SmallText
+                  style={{
+                    color: COLORS.primary,
+                    marginTop: 8,
+                    fontSize: 12,
+                  }}
+                >
+                  Tap to upload
+                </SmallText>
+              </View>
+            )}
+          </TouchableOpacity>
+          <MediumText
+            style={{ marginBottom: Spacing, color: "#000000", fontSize: 13 }}
+          >
+            Upload Image
           </MediumText>
-          <TextInput
-            style={{
-              fontFamily: "Sen-Regular",
-              fontSize: 14,
-              color: "#000000",
-              paddingVertical: Spacing,
-            }}
-            placeholder="wetin be our store name😅"
-            placeholderTextColor="#AAAAAA"
-            value={restaurantName}
-            onChangeText={setRestaurantName}
-            multiline
-          />
-          <View style={{ height: 1, backgroundColor: COLORS.primary }} />
         </View>
 
         {/* Description Input */}
         <View style={{ marginBottom: Spacing * 2 }}>
           <MediumText style={{ marginBottom: Spacing, color: "#000000" }}>
-            Add description
+            Description
           </MediumText>
           <TextInput
             style={{
@@ -325,10 +365,10 @@ export default function MoreDetailsScreen() {
           <View style={{ height: 1, backgroundColor: COLORS.primary }} />
         </View>
 
-        {/* Description Input */}
+        {/* Address Input */}
         <View style={{ marginBottom: Spacing * 2 }}>
           <MediumText style={{ marginBottom: Spacing, color: "#000000" }}>
-            Add Address
+            Address
           </MediumText>
           <TextInput
             style={{
@@ -339,13 +379,113 @@ export default function MoreDetailsScreen() {
             }}
             placeholder="e.g school road, lagos"
             placeholderTextColor="#AAAAAA"
-            value={description}
+            value={address}
             onChangeText={setAddress}
             multiline
           />
           <View style={{ height: 1, backgroundColor: COLORS.primary }} />
         </View>
 
+        {/* State Selector */}
+        <MediumText
+          style={{ fontSize: 14, fontWeight: "500", marginBottom: 8 }}
+        >
+          State
+        </MediumText>
+        <TouchableOpacity
+          onPress={() => setShowStatePicker(true)}
+          style={{
+            backgroundColor: "#F5F5F5",
+            borderRadius: 8,
+            padding: 16,
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 20,
+          }}
+        >
+          <MediumText
+            style={{ color: selectedState ? "black" : "#999", fontSize: 14 }}
+          >
+            {selectedStateName || "Select your state"}
+          </MediumText>
+          <Ionicons name="chevron-down" size={20} color="#999" />
+        </TouchableOpacity>
+
+        {/* State Picker Modal */}
+        <Modal
+          visible={showStatePicker}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowStatePicker(false)}
+        >
+          <TouchableOpacity
+            style={{
+              flex: 1,
+              backgroundColor: "rgba(0,0,0,0.5)",
+              justifyContent: "flex-end",
+            }}
+            activeOpacity={1}
+            onPress={() => setShowStatePicker(false)}
+          >
+            <View
+              style={{
+                backgroundColor: "white",
+                borderTopLeftRadius: 20,
+                borderTopRightRadius: 20,
+                padding: 16,
+                maxHeight: "50%",
+              }}
+            >
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 16,
+                }}
+              >
+                <MediumText style={{ fontSize: 16, fontWeight: "600" }}>
+                  Select State
+                </MediumText>
+                <TouchableOpacity onPress={() => setShowStatePicker(false)}>
+                  <Ionicons name="close" size={24} color="#000" />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView>
+                {STATES.map((state) => (
+                  <TouchableOpacity
+                    key={state.value}
+                    onPress={() => {
+                      setSelectedState(state.value);
+                      setSelectedStateName(state.label);
+                      setShowStatePicker(false);
+                    }}
+                    style={{
+                      padding: 16,
+                      borderBottomWidth: 1,
+                      borderBottomColor: "#eee",
+                      flexDirection: "row",
+                      alignItems: "center",
+                    }}
+                  >
+                    <MediumText style={{ flex: 1 }}>{state.label}</MediumText>
+                    {selectedState === state.value && (
+                      <Ionicons
+                        name="checkmark"
+                        size={24}
+                        color={COLORS.primary}
+                      />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+
+        {/* City Picker Modal */}
         <MediumText
           style={{ fontSize: 14, fontWeight: "500", marginBottom: 8 }}
         >
@@ -443,82 +583,223 @@ export default function MoreDetailsScreen() {
           </TouchableOpacity>
         </Modal>
 
-        <MediumText style={{ marginBottom: Spacing * 2 }}>
-          Business Hours
-        </MediumText>
-
-        {/* Opening Times Selector */}
-        <OpeningTimesSelector
-          selectedDay={selectedDay}
-          openTime={openTime}
-          closeTime={closeTime}
-          onDayChange={setSelectedDay}
-          onOpenTimeChange={setOpenTime}
-          onCloseTimeChange={setCloseTime}
-        />
-        {/* Add Button */}
-        <TouchableOpacity
-          style={{
-            borderColor: COLORS.primary,
-            borderWidth: 1,
-            padding: Spacing,
-            borderRadius: 8,
-            alignItems: "center",
-            marginTop: Spacing,
-            marginBottom: Spacing * 2,
-          }}
-          onPress={handleAddOpeningTime}
+        {/* Operation Type Selector */}
+        <MediumText
+          style={{ fontSize: 14, fontWeight: "500", marginBottom: 8 }}
         >
-          <SemiBoldText style={{ fontSize: 13 }}>Add Opening Time</SemiBoldText>
+          Operation Type
+        </MediumText>
+        <TouchableOpacity
+          onPress={() => setShowOperationPicker(true)}
+          style={{
+            backgroundColor: "#F5F5F5",
+            borderRadius: 8,
+            padding: 16,
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 20,
+          }}
+        >
+          <MediumText
+            style={{ color: operationType ? "black" : "#999", fontSize: 14 }}
+          >
+            {operationName || "Select operation type"}
+          </MediumText>
+          <Ionicons name="chevron-down" size={20} color="#999" />
         </TouchableOpacity>
 
-        {/* List of Added Opening Times */}
-        {openingTimes.length > 0 && (
-          <View style={{ marginBottom: Spacing * 2 }}>
-            <SemiBoldText style={{ marginBottom: Spacing }}>
-              Added Opening Times
-            </SemiBoldText>
-
-            {openingTimes.map((time, index) => (
+        {/* Operation Type Modal */}
+        <Modal
+          visible={showOperationPicker}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowOperationPicker(false)}
+        >
+          <TouchableOpacity
+            style={{
+              flex: 1,
+              backgroundColor: "rgba(0,0,0,0.5)",
+              justifyContent: "flex-end",
+            }}
+            activeOpacity={1}
+            onPress={() => setShowOperationPicker(false)}
+          >
+            <View
+              style={{
+                backgroundColor: "white",
+                borderTopLeftRadius: 20,
+                borderTopRightRadius: 20,
+                padding: 16,
+                maxHeight: "50%",
+              }}
+            >
               <View
-                key={index}
                 style={{
                   flexDirection: "row",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  padding: Spacing,
-                  backgroundColor: "#F8F8F8",
-                  borderRadius: 8,
-                  marginBottom: Spacing,
+                  marginBottom: 16,
                 }}
               >
-                <View>
-                  <MediumText style={{ fontWeight: "600" }}>
-                    {getDayLabel(time.day)}
-                  </MediumText>
-                  <MediumText style={{}}>
-                    {getTimeLabel(time.openTime)} -{" "}
-                    {getTimeLabel(time.closeTime)}
-                  </MediumText>
-                </View>
-
-                <TouchableOpacity
-                  style={{
-                    padding: Spacing / 2,
-                    backgroundColor: "#FFE5E5",
-                    borderRadius: 4,
-                  }}
-                  onPress={() => handleRemoveOpeningTime(index)}
-                >
-                  <MediumText style={{ color: "#FF4040" }}>Remove</MediumText>
+                <MediumText style={{ fontSize: 16, fontWeight: "600" }}>
+                  Select Operation Type
+                </MediumText>
+                <TouchableOpacity onPress={() => setShowOperationPicker(false)}>
+                  <Ionicons name="close" size={24} color="#000" />
                 </TouchableOpacity>
               </View>
-            ))}
+
+              <ScrollView>
+                {OPERATIONS.map((operation) => (
+                  <TouchableOpacity
+                    key={operation.value}
+                    onPress={() => {
+                      setOperationType(operation.value);
+                      setOperationName(operation.label);
+                      setShowOperationPicker(false);
+                    }}
+                    style={{
+                      padding: 16,
+                      borderBottomWidth: 1,
+                      borderBottomColor: "#eee",
+                      flexDirection: "row",
+                      alignItems: "center",
+                    }}
+                  >
+                    <MediumText style={{ flex: 1 }}>
+                      {operation.label}
+                    </MediumText>
+                    {operationType === operation.value && (
+                      <Ionicons
+                        name="checkmark"
+                        size={24}
+                        color={COLORS.primary}
+                      />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+
+        {/* Website Input (Optional) */}
+        <View style={{ marginBottom: Spacing * 2 }}>
+          <MediumText style={{ marginBottom: Spacing, color: "#000000" }}>
+            Website (Optional)
+          </MediumText>
+          <TextInput
+            style={{
+              fontFamily: "Sen-Regular",
+              fontSize: 14,
+              color: "#000000",
+              paddingVertical: Spacing,
+            }}
+            placeholder="e.g www.yourwebsite.com"
+            placeholderTextColor="#AAAAAA"
+            value={website}
+            onChangeText={setWebsite}
+          />
+          <View style={{ height: 1, backgroundColor: COLORS.primary }} />
+        </View>
+
+        {/* Operating Days */}
+        <View style={{ marginBottom: Spacing * 2 }}>
+          <MediumText style={{ marginBottom: Spacing }}>
+            Operating Days
+          </MediumText>
+          {Object.keys(operatingDays).map((day) => (
+            <TouchableOpacity
+              key={day}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                padding: Spacing,
+                backgroundColor: operatingDays[day as keyof OperatingDays]
+                  ? "#E8F5E9"
+                  : "#F5F5F5",
+                borderRadius: 8,
+                marginBottom: 8,
+              }}
+              onPress={() => toggleDay(day as keyof OperatingDays)}
+            >
+              <MediumText style={{ flex: 1 }}>{day}</MediumText>
+              <Ionicons
+                name={
+                  operatingDays[day as keyof OperatingDays]
+                    ? "checkmark-circle"
+                    : "ellipse-outline"
+                }
+                size={24}
+                color={
+                  operatingDays[day as keyof OperatingDays]
+                    ? COLORS.primary
+                    : "#999"
+                }
+              />
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Operating Time */}
+        <View style={{ marginBottom: Spacing * 2 }}>
+          <View style={{ flexDirection: "row", gap: 16 }}>
+            <View style={{ flex: 1 }}>
+              <MediumText style={{ marginBottom: 8 }}>Opening Time</MediumText>
+              <TouchableOpacity
+                style={{
+                  backgroundColor: "#F5F5F5",
+                  padding: 16,
+                  borderRadius: 8,
+                }}
+                onPress={() => setShowOpeningTimePicker(true)}
+              >
+                <MediumText style={{}}>
+                  {operatingTime.openingTime || "Select time"}
+                </MediumText>
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ flex: 1 }}>
+              <MediumText style={{ marginBottom: 8 }}>Closing Time</MediumText>
+              <TouchableOpacity
+                style={{
+                  backgroundColor: "#F5F5F5",
+                  padding: 16,
+                  borderRadius: 8,
+                }}
+                onPress={() => setShowClosingTimePicker(true)}
+              >
+                <MediumText style={{}}>
+                  {operatingTime.closingTime || "Select time"}
+                </MediumText>
+              </TouchableOpacity>
+            </View>
           </View>
-        )}
-        {/* <DefaultButton onPress={handleSubmit} title="Continue" /> */}
-        <DefaultButton onPress={() => router.push("/Login")} title="Continue" />
+        </View>
+
+        <DefaultButton onPress={handleSubmit} title="Continue" />
       </ScrollView>
+
+      {/* Time Picker Modals */}
+      <TimePicker
+        visible={showOpeningTimePicker}
+        onClose={() => setShowOpeningTimePicker(false)}
+        onSelect={(time) => {
+          setOperatingTime((prev) => ({ ...prev, openingTime: time }));
+        }}
+        title="Select Opening Time"
+      />
+
+      <TimePicker
+        visible={showClosingTimePicker}
+        onClose={() => setShowClosingTimePicker(false)}
+        onSelect={(time) => {
+          setOperatingTime((prev) => ({ ...prev, closingTime: time }));
+        }}
+        title="Select Closing Time"
+      />
     </AppSafeAreaView>
   );
 }

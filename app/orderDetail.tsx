@@ -20,24 +20,27 @@ import { Order, OrderStatus } from "@/hooks/data/order";
 import COLORS from "@/constants/colors";
 import { User } from "iconsax-react-native";
 import { ErrorToast, SuccessToast } from "@/components/common/Toasts";
+import axios from "axios";
+import { BASE_URL } from "@/config";
+import useAuthStore from "@/store/authStore";
 
 const ORDER_STAGES: OrderStatus[] = [
-  "about_to_prepare",
-  "in_preparation",
-  "done",
+  "in_the_kitchen",
+  "prepared",
   "on_the_way",
+  "completed",
 ];
 
 const getStageLabel = (stage: OrderStatus): string => {
   switch (stage) {
-    case "about_to_prepare":
-      return "About to be prepared";
-    case "in_preparation":
-      return "In preparation";
-    case "done":
-      return "Done";
+    case "in_the_kitchen":
+      return "In the kitchen";
+    case "prepared":
+      return "Prepared";
     case "on_the_way":
       return "On the way";
+    case "completed":
+      return "Completed";
     default:
       return stage;
   }
@@ -45,12 +48,20 @@ const getStageLabel = (stage: OrderStatus): string => {
 
 export default function OrderDetailsScreen() {
   const router = useRouter();
-  const { id, orderData } = useLocalSearchParams();
+  const { id, orderData, orderID } = useLocalSearchParams();
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [currentOrder, setCurrentOrder] = useState<Order>(
-    JSON.parse(orderData as string)
-  );
+  const [currentOrder, setCurrentOrder] = useState<Order>(() => {
+    const parsedOrder = JSON.parse(orderData as string);
+    return {
+      ...parsedOrder,
+      orderId: parsedOrder.orderId || orderID, // Parse orderID
+      status: parsedOrder.status || "in_the_kitchen",
+    };
+  });
+
+  const user = useAuthStore((state) => state.userInfo);
+  const token = useAuthStore((state) => state.token);
 
   if (!currentOrder) {
     return (
@@ -65,12 +76,28 @@ export default function OrderDetailsScreen() {
   const handleUpdateStatus = async (newStatus: OrderStatus) => {
     try {
       setUpdatingStatus(true);
+      console.log("Updating order:", currentOrder.orderId);
+
+      const response = await axios({
+        method: "put",
+        url: `${BASE_URL}/order/${currentOrder.orderId}/status`,
+        data: { status: newStatus },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      console.log("Status Update Response:", response.data);
+
       setCurrentOrder((prev) => ({
         ...prev,
         status: newStatus,
       }));
+
       SuccessToast("Order status updated");
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Status Update Error:", error.response?.data);
       ErrorToast("Failed to update order status");
     } finally {
       setUpdatingStatus(false);
@@ -89,12 +116,23 @@ export default function OrderDetailsScreen() {
         onPress: async () => {
           try {
             setLoading(true);
-            // Simulate API call
-            await new Promise((resolve) => setTimeout(resolve, 1500));
 
+            const response = await axios({
+              method: "put",
+              url: `${BASE_URL}/order/${currentOrder.orderId}/status`,
+              data: { status: "rejected" },
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+            });
+
+            console.log("Status Update Response:", response.data);
+            SuccessToast("Order rejected successfully");
             router.back();
-          } catch (error) {
-            Alert.alert("Error", "Failed to reject order");
+          } catch (error: any) {
+            console.error("Reject Order Error:", error.response?.data);
+            ErrorToast(error.response?.data?.error || "Failed to reject order");
           } finally {
             setLoading(false);
           }
@@ -254,29 +292,38 @@ export default function OrderDetailsScreen() {
         <View>
           <MediumText style={{ marginBottom: 12 }}>Stage of order</MediumText>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-            {ORDER_STAGES.map((stage) => (
-              <TouchableOpacity
-                key={stage}
-                style={{
-                  backgroundColor:
-                    currentOrder.status === stage ? COLORS.primary : "#F8F8F8",
-                  padding: 12,
-                  borderRadius: 20,
-                  opacity: updatingStatus ? 0.7 : 1,
-                }}
-                onPress={() => handleUpdateStatus(stage)}
-                disabled={updatingStatus}
-              >
-                <SmallText
+            {ORDER_STAGES.map((stage) => {
+              const isCurrentStage = currentOrder.status === stage;
+              const isPastStage =
+                ORDER_STAGES.indexOf(stage) <=
+                ORDER_STAGES.indexOf(currentOrder.status);
+
+              return (
+                <TouchableOpacity
+                  key={stage}
                   style={{
-                    color:
-                      currentOrder.status === stage ? "#FFFFFF" : "#000000",
+                    backgroundColor: isCurrentStage
+                      ? COLORS.primary
+                      : "#F8F8F8",
+                    padding: 12,
+                    borderRadius: 20,
+                    opacity: updatingStatus ? 0.7 : 1,
                   }}
+                  onPress={() => handleUpdateStatus(stage)}
+                  disabled={
+                    updatingStatus || currentOrder.status === "rejected"
+                  }
                 >
-                  {getStageLabel(stage)}
-                </SmallText>
-              </TouchableOpacity>
-            ))}
+                  <SmallText
+                    style={{
+                      color: isCurrentStage ? "#FFFFFF" : "#000000",
+                    }}
+                  >
+                    {getStageLabel(stage)}
+                  </SmallText>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
       </ScrollView>

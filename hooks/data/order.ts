@@ -1,8 +1,9 @@
 export type OrderStatus =
-  | "about_to_prepare"
-  | "in_preparation"
-  | "done"
-  | "on_the_way";
+  | "in_the_kitchen"
+  | "prepared"
+  | "on_the_way"
+  | "completed"
+  | "rejected";
 
 export interface OrderItem {
   product: any;
@@ -15,6 +16,7 @@ export interface OrderItem {
 }
 
 export interface Order {
+  orderId: string | number | (string | number)[] | null | undefined;
   _id: string;
   customerName: string;
   customerImage: string;

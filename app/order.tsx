@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { View, ScrollView, TouchableOpacity, Image } from "react-native";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { ArrowLeft, Bell } from "lucide-react-native";
 import Spinner from "react-native-loading-spinner-overlay";
 import { AppSafeAreaView } from "@/components/common/AppViews";
@@ -33,31 +33,47 @@ export default function OrdersScreen() {
 
   const getOrders = () => {
     setLoading(true);
+    console.log("Token:", token);
+    console.log("ID:", userInfo._id);
 
     axios
-      .get(`${BASE_URL}/orders/vendor/${userInfo._id}`, {
+      .get(`${BASE_URL}/order/vendor/${userInfo._id}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((response) => {
         console.log("Orders:", response.data);
-        setOrders(response.data || []);
+        setOrders(response.data.order || []);
       })
-      .catch(() => ErrorToast("Failed to fetch orders"))
+      .catch((error) => {
+        ErrorToast("Failed to fetch orders");
+        console.error("Get Orders Error:", error.response?.data);
+      })
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => {
-    getOrders();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      getOrders();
+    }, [])
+  );
 
   const filteredOrders = orders.filter((order) => {
-    if (activeTab === "pending") {
-      return order.status !== "done";
+    // First check if order is rejected
+    if (order.status === "rejected") {
+      return false;
     }
-    return order.status === "done";
+
+    // Then filter by tab status
+    if (activeTab === "pending") {
+      return order.status !== "completed";
+    }
+    return order.status === "completed";
   });
 
-  const pendingCount = orders.filter((order) => order.status !== "done").length;
+  // Update pending count to exclude rejected orders
+  const pendingCount = orders.filter(
+    (order) => order.status !== "completed" && order.status !== "rejected"
+  ).length;
 
   const handlePress = () => {};
 
@@ -160,7 +176,8 @@ export default function OrdersScreen() {
                   pathname: "/orderDetail",
                   params: {
                     id: order._id,
-                    orderData: JSON.stringify(order), // Pass the full order data
+                    orderData: JSON.stringify(order),
+                    orderID: order.orderId, // Pass the full order data
                   },
                 })
               }

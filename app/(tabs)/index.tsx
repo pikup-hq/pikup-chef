@@ -30,6 +30,9 @@ import { ErrorToast } from "@/components/common/Toasts";
 import { format } from "date-fns";
 import { AdvertisementBanner } from "@/components/AdvertismentBanner";
 import { vendorAdvertisements } from "@/hooks/data/advert";
+import { createAvatar } from "@dicebear/core";
+import { dylan } from "@dicebear/collection";
+import { SvgXml } from "react-native-svg";
 
 // Add this helper function at the top of the file
 const formatAmount = (amount: number): string => {
@@ -38,20 +41,6 @@ const formatAmount = (amount: number): string => {
     maximumFractionDigits: 2,
   }).format(amount);
 };
-
-// Add this interface for type safety
-// interface OrderDetails {
-//   id: string;
-//   items: Array<{
-//     name: string;
-//     description: string;
-//     price: number;
-//     image: string;
-//   }>;
-//   createdAt: string;
-//   status: string;
-//   // Add other order properties you need
-// }
 
 export default function index() {
   const router = useRouter();
@@ -92,24 +81,20 @@ export default function index() {
   );
 
   const filteredOrders = orders.filter((order) => {
-    if (activeTab === "ongoing") {
-      return order.status !== "done";
+    // First exclude rejected orders
+    if (order.status === "rejected") {
+      return false;
     }
-    return order.status === "done";
+
+    // Then filter by tab
+    if (activeTab === "ongoing") {
+      return order.status !== "completed";
+    }
+    return order.status === "completed";
   });
   const completedOrdersCount = orders.filter(
-    (order) => order.status === "done"
+    (order) => order.status === "completed"
   ).length;
-
-  const handleViewOrder = (order: Order) => {
-    router.push({
-      pathname: "/orderDetail",
-      params: {
-        id: order._id,
-        orderData: JSON.stringify(order), // Serialize order data
-      },
-    });
-  };
 
   const formatDate = (dateString: string) => {
     try {
@@ -120,6 +105,11 @@ export default function index() {
       return dateString;
     }
   };
+
+  const avatar = createAvatar(dylan, {
+    seed: userInfo.firstName,
+    // ... other options
+  }).toString();
 
   return (
     <AppSafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
@@ -136,15 +126,9 @@ export default function index() {
           paddingBottom: 10,
         }}
       >
-        <Image
-          source={{ uri: userData.logo }}
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 20,
-            marginRight: 12,
-          }}
-        />
+        <View style={{ marginRight: 7, borderRadius: 20, overflow: "hidden" }}>
+          <SvgXml xml={avatar} height={40} width={40} />
+        </View>
         <View style={{ flex: 1 }}>
           <SemiBoldText style={{ marginBottom: -2 }}>
             {userInfo.firstName + " " + userInfo.lastName}
@@ -256,7 +240,8 @@ export default function index() {
                       pathname: "/orderDetail",
                       params: {
                         id: order._id,
-                        orderData: JSON.stringify(order), // Pass single order instead of array
+                        orderData: JSON.stringify(order),
+                        orderID: order.orderId, // Pass single order instead of array
                       },
                     })
                   }

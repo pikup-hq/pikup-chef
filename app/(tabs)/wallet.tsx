@@ -16,6 +16,8 @@ import {
   CircleDollarSign,
   MoveUpIcon,
   MoveDown,
+  Hand,
+  HandCoins,
 } from "lucide-react-native";
 import Spinner from "react-native-loading-spinner-overlay";
 import { AppSafeAreaView } from "@/components/common/AppViews";
@@ -33,6 +35,8 @@ import { BASE_URL } from "@/config";
 import axios from "axios";
 import { ErrorToast } from "@/components/common/Toasts";
 import { format } from "date-fns";
+import NoDataView from "@/components/NoDataView";
+import { Coin } from "iconsax-react-native";
 
 // Add this helper function at the top of the file
 const formatAmount = (amount: number): string => {
@@ -149,7 +153,7 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
 export default function WalletScreen() {
   const router = useRouter();
   const [showBalance, setShowBalance] = useState(true);
-  const [balance, setBalance] = useState(10000);
+  const [balance, setBalance] = useState(0);
   const [wallet, setWallet] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -294,9 +298,19 @@ export default function WalletScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingTop: 5 }}
         >
-          {wallet.map((transaction) => (
-            <TransactionItem key={transaction._id} transaction={transaction} />
-          ))}
+          {wallet.length === 0 ? (
+            <NoDataView
+              message="No transactions yet"
+              icon={<HandCoins size={48} color="#CCCCCC" />}
+            />
+          ) : (
+            wallet.map((transaction) => (
+              <TransactionItem
+                key={transaction._id}
+                transaction={transaction}
+              />
+            ))
+          )}
         </ScrollView>
       </View>
     </AppSafeAreaView>

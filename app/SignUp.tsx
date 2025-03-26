@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
-  Pressable,
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
@@ -16,7 +15,6 @@ import {
   SmallText,
   SemiBoldBlueText,
 } from "../components/common/AppText";
-import COLORS from "../constants/colors";
 import Spacing from "../constants/Spacing";
 import { Eye, EyeOff } from "react-native-feather";
 import { router } from "expo-router";
@@ -30,7 +28,7 @@ type SignupScreenProps = {
 };
 
 const SignupScreen: React.FC<SignupScreenProps> = () => {
-  const [firstName, setFirstName] = useState<string>("");
+  const [businessName, setBusinessName] = useState<string>("");
   const [lastName, setLastName] = useState<string>("");
 
   const [email, setEmail] = useState<string>("");
@@ -80,11 +78,11 @@ const SignupScreen: React.FC<SignupScreenProps> = () => {
       ErrorToast("Password must contain a number.");
     } else {
       console.log("Email:", email);
-      console.log("Name:", firstName, lastName);
+      console.log("Name:", businessName, lastName);
       console.log("Phone:", phoneNumber);
       console.log("Password:", password);
 
-      signup(email, password, firstName, lastName, phoneNumber);
+      signup(email, password, businessName, lastName, phoneNumber);
     }
   };
 
@@ -113,30 +111,16 @@ const SignupScreen: React.FC<SignupScreenProps> = () => {
               experience
             </MediumText>
 
-            {/* First Name Input */}
+            {/* Business Name Input */}
             <View style={styles.inputGroup}>
-              <SmallText style={styles.label}>First name</SmallText>
+              <SmallText style={styles.label}>Business name</SmallText>
               <View style={styles.inputContainer}>
                 <TextInput
                   style={styles.input}
-                  placeholder="Enter first name"
+                  placeholder="e.g Pikup Kitchens"
                   placeholderTextColor="#AAAAAA"
-                  value={firstName}
-                  onChangeText={setFirstName}
-                />
-              </View>
-              <View style={styles.inputUnderline} />
-            </View>
-            {/* Last Name Input */}
-            <View style={styles.inputGroup}>
-              <SmallText style={styles.label}>Last name</SmallText>
-              <View style={styles.inputContainer}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter last name"
-                  placeholderTextColor="#AAAAAA"
-                  value={lastName}
-                  onChangeText={setLastName}
+                  value={businessName}
+                  onChangeText={setBusinessName}
                 />
               </View>
               <View style={styles.inputUnderline} />
@@ -326,6 +310,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingVertical: Spacing * 1.5,
     alignItems: "center",
+    marginTop: Spacing * 5,
     marginBottom: Spacing,
   },
   buttonText: {
@@ -339,10 +324,10 @@ const styles = StyleSheet.create({
   },
   loginText: {
     color: "#555555",
-    fontSize: 12,
+    fontSize: 13,
   },
   loginLink: {
-    fontSize: 12,
+    fontSize: 13,
     color: "#FE7622",
   },
 });

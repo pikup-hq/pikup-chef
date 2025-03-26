@@ -21,10 +21,13 @@ import { responsiveText } from "@/utilities/helper";
 import { userData } from "@/hooks/data/user";
 import { router } from "expo-router";
 import useAuthStore from "@/store/authStore";
+import { createAvatar } from "@dicebear/core";
+import { dylan } from "@dicebear/collection";
+import { SvgXml } from "react-native-svg";
 
 export default function ProfileScreen() {
   const handleLogout = () => {
-    router.push("/");
+    router.push("/OnboardingOne");
     setOpenModal(false);
   };
 
@@ -32,6 +35,11 @@ export default function ProfileScreen() {
   const user = useAuthStore((state) => state.userInfo);
 
   let userInfo = JSON.parse(user);
+
+  const avatar = createAvatar(dylan, {
+    seed: userInfo.firstName,
+    // ... other options
+  }).toString();
 
   return (
     <AppView>
@@ -153,23 +161,15 @@ export default function ProfileScreen() {
       >
         <View
           style={{
-            backgroundColor: COLORS.secondary,
-            width: 114,
-            height: 114,
+            width: 110,
+            height: 110,
             borderRadius: 60,
             justifyContent: "center",
             alignItems: "center",
+            overflow: "hidden",
           }}
         >
-          <Image
-            style={{
-              borderRadius: 60,
-              width: 110,
-              resizeMode: "center",
-              height: 110,
-            }}
-            source={{ uri: userData.logo }}
-          />
+          <SvgXml xml={avatar} height={110} width={110} />
         </View>
         <SemiBoldText style={{ fontSize: responsiveText(17), marginTop: 5 }}>
           {userInfo.firstName + " " + userInfo.lastName}

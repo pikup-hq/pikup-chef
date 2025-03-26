@@ -66,6 +66,10 @@ export const UseAuth = () => {
 
       const response = await axios.request(config);
       const res = JSON.parse(JSON.stringify(response.data));
+
+      // Store moreDetails status
+      await SecureStore.setItemAsync("moreDetails", "false");
+
       SuccessToast(res.message);
       setIsSuccess(true);
       setIsLoading(false);
@@ -129,6 +133,14 @@ export const UseAuth = () => {
 
       setUserInfo(JSON.stringify(user));
       setToken(token);
+
+      // Check moreDetails status
+      const moreDetails = await SecureStore.getItemAsync("moreDetails");
+      if ( moreDetails === "false") {
+        console.log("Redirecting to MoreDetails: Profile incomplete");
+        router.push("/MoreDetails");
+        return;
+      }
 
       console.log("Auth token:", token);
       console.log("User data:", user);
