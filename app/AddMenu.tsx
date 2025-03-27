@@ -54,20 +54,53 @@ export default function EditMenuScreen() {
     }
   }, [menuData]);
 
+  const uploadImageToCloudinary = async (uri: string) => {
+    try {
+      const formData = new FormData();
+      formData.append("file", {
+        uri,
+        type: "image/jpeg",
+        name: "upload.jpg",
+      } as any);
+      formData.append("upload_preset", "pikup-images");
+
+      const response = await axios.post(
+        "https://api.cloudinary.com/v1_1/duudwz4tx/image/upload",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      return response.data.secure_url;
+    } catch (error) {
+      console.error("Upload error:", error);
+      throw new Error("Failed to upload image");
+    }
+  };
+
   const pickImage = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images"],
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 1,
+        quality: 0.8,
       });
 
       if (!result.canceled) {
-        setImage(result.assets[0].uri);
+        setSubmitting(true);
+        const imageUrl = await uploadImageToCloudinary(result.assets[0].uri);
+        setImage(imageUrl);
+        SuccessToast("Image uploaded successfully");
       }
     } catch (error) {
-      ErrorToast("Failed to pick image");
+      ErrorToast("Failed to upload image");
+      console.error("Image pick/upload error:", error);
+    } finally {
+      setSubmitting(false);
     }
   };
 

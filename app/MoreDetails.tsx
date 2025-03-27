@@ -130,25 +130,63 @@ export default function MoreDetailsScreen() {
   const token = useAuthStore((state) => state.token);
   const userInfo = JSON.parse(user);
 
+  // Add uploadImageToCloudinary function
+  const uploadImageToCloudinary = async (uri: string) => {
+    try {
+      const formData = new FormData();
+      formData.append("file", {
+        uri,
+        type: "image/jpeg",
+        name: "upload.jpg",
+      } as any);
+      formData.append("upload_preset", "pikup_uploads");
+
+      const response = await axios.post(
+        "https://api.cloudinary.com/v1_1/your-cloud-name/image/upload",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      return response.data.secure_url;
+    } catch (error) {
+      console.error("Upload error:", error);
+      throw new Error("Failed to upload image");
+    }
+  };
+
+  // Update pickImage function
   const pickImage = async (
     setImage: (image: ImageInfo | null) => void,
     options?: ImagePicker.ImagePickerOptions
   ) => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
-      ...options,
-    });
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+        ...options,
+      });
 
-    if (!result.canceled) {
-      const imageInfo: ImageInfo = {
-        uri: result.assets[0].uri,
-        type: "image/jpeg",
-        fileName: "image.jpg",
-      };
-      setImage(imageInfo);
+      if (!result.canceled) {
+        setSubmitting(true);
+        const imageUrl = await uploadImageToCloudinary(result.assets[0].uri);
+        setImage({
+          uri: imageUrl,
+          type: "image/jpeg",
+          fileName: "image.jpg",
+        });
+        SuccessToast("Profile image uploaded successfully");
+      }
+    } catch (error) {
+      ErrorToast("Failed to upload image");
+      console.error("Image pick/upload error:", error);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -181,6 +219,7 @@ export default function MoreDetailsScreen() {
     }));
   };
 
+  // Update handleSubmit to use profileImage.uri directly
   const handleSubmit = async () => {
     if (
       !profileImage ||
@@ -210,7 +249,7 @@ export default function MoreDetailsScreen() {
 
       const payload = {
         _id: userInfo._id,
-        avatar: profileImage.uri,
+        avatar: profileImage.uri, // This is now the Cloudinary URL
         description,
         address,
         state: selectedState,
