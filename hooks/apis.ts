@@ -136,7 +136,7 @@ export const UseAuth = () => {
 
       // Check moreDetails status
       const moreDetails = await SecureStore.getItemAsync("moreDetails");
-      if ( moreDetails === "false") {
+      if (moreDetails === "false") {
         console.log("Redirecting to MoreDetails: Profile incomplete");
         router.push("/MoreDetails");
         return;
@@ -149,7 +149,17 @@ export const UseAuth = () => {
       setIsSuccess(true);
     } catch (error: any) {
       ErrorToast(error.response?.data?.error || "Login failed");
-      console.error("Login error:", error.response?.data);
+
+      if (error.response?.data.user_verified === false) {
+        console.log("Verified?:", error.response?.data.user_verified);
+        WarningToast("Verify your Email address");
+        router.push({
+          pathname: "/VerifyMail",
+          params: { mail: email },
+        });
+        return;
+      }
+      
     } finally {
       setIsLoading(false);
     }

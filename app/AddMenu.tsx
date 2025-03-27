@@ -74,6 +74,7 @@ export default function EditMenuScreen() {
         }
       );
 
+      console.log(response.data.secure_url)
       return response.data.secure_url;
     } catch (error) {
       console.error("Upload error:", error);
