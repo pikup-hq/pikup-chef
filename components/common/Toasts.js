@@ -18,7 +18,7 @@ export function ErrorToast(description) {
 
 export function WarningToast(description) {
   return Toast.show({
-    type: "warning",
+    type: "error",
     text1: "Warning ⚠️",
     text2: description,
   });

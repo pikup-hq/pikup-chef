@@ -74,7 +74,7 @@ export default function EditMenuScreen() {
         }
       );
 
-      console.log(response.data.secure_url)
+      console.log(response.data.secure_url);
       return response.data.secure_url;
     } catch (error) {
       console.error("Upload error:", error);
@@ -88,7 +88,7 @@ export default function EditMenuScreen() {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.8,
+        quality: 0.5,
       });
 
       if (!result.canceled) {
@@ -114,7 +114,7 @@ export default function EditMenuScreen() {
     setSubmitting(true);
 
     try {
-      // Create payload from state values
+      // Create base payload
       const menuPayload = {
         name,
         description,
@@ -122,6 +122,11 @@ export default function EditMenuScreen() {
         image,
         available: true,
       };
+
+      // Add menuId only when editing
+      if (id !== "new" && menuId) {
+        Object.assign(menuPayload, { menuId });
+      }
 
       // Log payload for debugging
       console.log("Menu Payload:", {
@@ -131,7 +136,7 @@ export default function EditMenuScreen() {
 
       const endpoint =
         id !== "new"
-          ? `${BASE_URL}/product/edit/${menuId}`
+          ? `${BASE_URL}/product/edit` // Include menuId in URL for edit
           : `${BASE_URL}/product`;
 
       const response = await axios({

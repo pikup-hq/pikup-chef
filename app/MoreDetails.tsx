@@ -139,10 +139,10 @@ export default function MoreDetailsScreen() {
         type: "image/jpeg",
         name: "upload.jpg",
       } as any);
-      formData.append("upload_preset", "pikup_uploads");
+      formData.append("upload_preset", "pikup-images");
 
       const response = await axios.post(
-        "https://api.cloudinary.com/v1_1/your-cloud-name/image/upload",
+        "https://api.cloudinary.com/v1_1/duudwz4tx/image/upload",
         formData,
         {
           headers: {
@@ -150,7 +150,8 @@ export default function MoreDetailsScreen() {
           },
         }
       );
-
+      console.log(response.data.secure_url)
+      
       return response.data.secure_url;
     } catch (error) {
       console.error("Upload error:", error);
@@ -168,7 +169,7 @@ export default function MoreDetailsScreen() {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.8,
+        quality: 0.5,
         ...options,
       });
 

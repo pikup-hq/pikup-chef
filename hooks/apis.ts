@@ -4,7 +4,6 @@ import { BASE_URL } from "@/config";
 import {
   ErrorToast,
   SuccessToast,
-  WarningToast,
 } from "@/components/common/Toasts";
 import useAuthStore from "@/store/authStore";
 import * as SecureStore from "expo-secure-store";
@@ -117,7 +116,7 @@ export const UseAuth = () => {
 
       if (response.data.user_verified === false) {
         console.log("Verified?:", response.data?.user_verified);
-        WarningToast("Verify your Email address");
+        ErrorToast("Verify your Email address");
         router.push({
           pathname: "/VerifyMail",
           params: { mail: email },
@@ -152,14 +151,14 @@ export const UseAuth = () => {
 
       if (error.response?.data.user_verified === false) {
         console.log("Verified?:", error.response?.data.user_verified);
-        WarningToast("Verify your Email address");
+        ErrorToast("Verify your Email address");
         router.push({
           pathname: "/VerifyMail",
           params: { mail: email },
         });
         return;
       }
-      
+
     } finally {
       setIsLoading(false);
     }
