@@ -1,7 +1,6 @@
 export type OrderStatus =
   | "in_the_kitchen"
   | "prepared"
-  | "on_the_way"
   | "completed"
   | "rejected";
 

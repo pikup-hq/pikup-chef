@@ -1,1 +1,1 @@
-export const BASE_URL = "https://pikup-api-v2.onrender.com";
+export const BASE_URL = "https://pikup-api-7a9w.onrender.com";

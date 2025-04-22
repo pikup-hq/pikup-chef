@@ -63,7 +63,7 @@ export default function VerifyMail() {
   };
 
   if (isSuccess) {
-    router.push("/MoreDetails")
+    router.push("/Login");
   }
 
   const handleResendOtp = () => {

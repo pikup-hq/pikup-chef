@@ -279,7 +279,7 @@ export default function MoreDetailsScreen() {
       // Set moreDetails to true in SecureStore
       await SecureStore.setItemAsync("moreDetails", "true");
 
-      router.push("/Login");
+      router.push("/(tabs)");
       console.log("API Response:", response.data);
       SuccessToast("Business details updated successfully");
     } catch (error: any) {
