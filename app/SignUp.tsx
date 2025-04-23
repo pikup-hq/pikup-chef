@@ -7,6 +7,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  SafeAreaView,
 } from "react-native";
 import { AppSafeAreaView } from "../components/common/AppViews";
 import {
@@ -94,15 +95,18 @@ const SignupScreen: React.FC<SignupScreenProps> = () => {
   }
 
   return (
-    <AppSafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Spinner color="#181C2E" visible={isLoading} />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
       >
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
         >
           <View style={styles.formContainer}>
             <LargeText style={styles.title}>Create your account</LargeText>
@@ -233,18 +237,20 @@ const SignupScreen: React.FC<SignupScreenProps> = () => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </AppSafeAreaView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    paddingHorizontal: Spacing * 2,
     backgroundColor: "#FFFFFF",
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: Spacing * 2,
+    paddingBottom: Spacing * 4,
+    justifyContent: "center",
   },
   formContainer: {
     padding: Spacing,

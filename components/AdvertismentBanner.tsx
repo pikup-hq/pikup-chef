@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from "react";
 import {
   View,
   FlatList,
@@ -10,21 +10,21 @@ import {
   ActivityIndicator,
   ViewStyle,
   ImageStyle,
-  TextStyle
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
-import COLORS from '@/constants/colors';
-import { SmallText } from './common/AppText';
+  TextStyle,
+} from "react-native";
+import { useRouter } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
+import COLORS from "@/constants/colors";
+import { SmallText } from "./common/AppText";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 
 export interface Advertisement {
   id: string;
   imageUrl: string;
   title?: string;
   description?: string;
-  linkType: 'screen' | 'url';
+  linkType: "screen" | "url";
   link: string; // screen path or URL
   brandName?: string;
   backgroundColor?: string;
@@ -61,7 +61,7 @@ export const AdvertisementBanner: React.FC<AdvertisementBannerProps> = ({
   descriptionStyle,
   indicatorContainerStyle,
   activeIndicatorStyle,
-  inactiveIndicatorStyle
+  inactiveIndicatorStyle,
 }) => {
   const router = useRouter();
   const flatListRef = useRef<FlatList>(null);
@@ -72,18 +72,18 @@ export const AdvertisementBanner: React.FC<AdvertisementBannerProps> = ({
   // Handle auto-scrolling
   useEffect(() => {
     let scrollTimer: NodeJS.Timeout;
-    
+
     if (autoScroll && advertisements.length > 1) {
       scrollTimer = setInterval(() => {
         const nextIndex = (currentIndex + 1) % advertisements.length;
         flatListRef.current?.scrollToIndex({
           index: nextIndex,
-          animated: true
+          animated: true,
         });
         setCurrentIndex(nextIndex);
       }, scrollInterval);
     }
-    
+
     return () => {
       if (scrollTimer) {
         clearInterval(scrollTimer);
@@ -93,14 +93,14 @@ export const AdvertisementBanner: React.FC<AdvertisementBannerProps> = ({
 
   // Handle advertisement click
   const handleAdvertisementPress = async (ad: Advertisement) => {
-    if (ad.linkType === 'screen') {
-    //   router.push(`/${ad.link}`);
-    } else if (ad.linkType === 'url') {
+    if (ad.linkType === "screen") {
+      //   router.push(`/${ad.link}`);
+    } else if (ad.linkType === "url") {
       try {
         // Open URL in browser
         await WebBrowser.openBrowserAsync(ad.link);
       } catch (error) {
-        console.error('Error opening URL:', error);
+        console.error("Error opening URL:", error);
         // Fallback to Linking API
         const supported = await Linking.canOpenURL(ad.link);
         if (supported) {
@@ -114,12 +114,12 @@ export const AdvertisementBanner: React.FC<AdvertisementBannerProps> = ({
 
   // Handle image load start
   const handleLoadStart = (id: string) => {
-    setLoading(prev => ({ ...prev, [id]: true }));
+    setLoading((prev) => ({ ...prev, [id]: true }));
   };
 
   // Handle image load end
   const handleLoadEnd = (id: string) => {
-    setLoading(prev => ({ ...prev, [id]: false }));
+    setLoading((prev) => ({ ...prev, [id]: false }));
   };
 
   // Handle scroll end
@@ -140,8 +140,10 @@ export const AdvertisementBanner: React.FC<AdvertisementBannerProps> = ({
           width: bannerWidth,
           height,
           borderRadius,
-          backgroundColor: item.backgroundColor || '#F5F5F5'
-        }
+          backgroundColor: item.backgroundColor || "#F5F5F5",
+          padding: 8, // Add padding here
+          marginHorizontal: 4, // Add horizontal spacing between items
+        },
       ]}
     >
       <Image
@@ -151,21 +153,21 @@ export const AdvertisementBanner: React.FC<AdvertisementBannerProps> = ({
           {
             width: bannerWidth,
             height,
-            borderRadius
+            borderRadius,
           },
-          imageStyle
+          imageStyle,
         ]}
         resizeMode="cover"
         onLoadStart={() => handleLoadStart(item.id)}
         onLoadEnd={() => handleLoadEnd(item.id)}
       />
-      
+
       {loading[item.id] && (
         <View style={styles.loaderContainer}>
           <ActivityIndicator size="large" color={COLORS.primary} />
         </View>
       )}
-      
+
       {/* {(item.title || item.description) && (
         <View style={styles.textOverlay}>
           {item.title && (
@@ -193,7 +195,7 @@ export const AdvertisementBanner: React.FC<AdvertisementBannerProps> = ({
   // Render pagination indicators
   const renderIndicators = () => {
     if (!showIndicator || advertisements.length <= 1) return null;
-    
+
     return (
       <View style={[styles.indicatorContainer, indicatorContainerStyle]}>
         {advertisements.map((_, index) => (
@@ -203,7 +205,7 @@ export const AdvertisementBanner: React.FC<AdvertisementBannerProps> = ({
               styles.indicator,
               index === currentIndex
                 ? [styles.activeIndicator, activeIndicatorStyle]
-                : [styles.inactiveIndicator, inactiveIndicatorStyle]
+                : [styles.inactiveIndicator, inactiveIndicatorStyle],
             ]}
           />
         ))}
@@ -239,60 +241,69 @@ export const AdvertisementBanner: React.FC<AdvertisementBannerProps> = ({
 const styles = StyleSheet.create({
   container: {
     marginVertical: 10,
+    paddingHorizontal: 4, // Add padding to container to account for item margin
   },
   itemContainer: {
-    overflow: 'hidden',
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   image: {
-    position: 'absolute',
+    position: "absolute",
   },
   loaderContainer: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.1)",
   },
   textOverlay: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
     padding: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
     borderBottomLeftRadius: 12,
     borderBottomRightRadius: 12,
   },
   title: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 4,
   },
   description: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 12,
   },
   brandContainer: {
-    position: 'absolute',
+    position: "absolute",
     top: 8,
     right: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
   },
   brandText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 10,
   },
   indicatorContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     marginTop: 8,
   },
   indicator: {
@@ -308,6 +319,6 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   inactiveIndicator: {
-    backgroundColor: '#CCCCCC',
+    backgroundColor: "#CCCCCC",
   },
 });

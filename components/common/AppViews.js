@@ -7,12 +7,11 @@ import {
   ScrollView,
   StatusBar,
   View,
+  Platform, // Add Platform import
 } from "react-native";
 
 import COLORS from "../../constants/colors";
 import Spacing from "../../constants/Spacing";
-
-// Add Animated View
 
 export const AppSafeAreaView = (props) => {
   return (
@@ -20,8 +19,7 @@ export const AppSafeAreaView = (props) => {
       style={{
         flex: 1,
         backgroundColor: COLORS.white,
-        paddingLeft: Spacing * 2,
-        paddingRight: Spacing * 2,
+        paddingHorizontal: Spacing * 2,
         paddingTop: StatusBar.currentHeight + 5,
         ...props.style,
       }}
