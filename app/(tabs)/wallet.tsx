@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   Alert,
   ImageBackground,
+  SafeAreaView,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useCallback } from "react";
@@ -37,6 +38,8 @@ import { ErrorToast } from "@/components/common/Toasts";
 import { format } from "date-fns";
 import NoDataView from "@/components/NoDataView";
 import { Coin } from "iconsax-react-native";
+import Spacing from "@/constants/Spacing";
+import { StatusBar } from "react-native";
 
 // Add this helper function at the top of the file
 const formatAmount = (amount: number): string => {
@@ -201,7 +204,14 @@ export default function WalletScreen() {
   };
 
   return (
-    <AppSafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
+    <SafeAreaView
+      style={{
+        flex: 1,
+        backgroundColor: "#FFFFFF",
+        paddingHorizontal: Spacing * 2,
+        paddingTop: (StatusBar.currentHeight ?? 20) + 5,
+      }}
+    >
       <Spinner visible={isLoading} overlayColor="rgba(0, 0, 0, 0.7)" />
 
       {/* Header */}
@@ -313,6 +323,6 @@ export default function WalletScreen() {
           )}
         </ScrollView>
       </View>
-    </AppSafeAreaView>
+    </SafeAreaView>
   );
 }

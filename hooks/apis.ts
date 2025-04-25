@@ -87,6 +87,8 @@ export const UseAuth = () => {
       setIsLoading(true);
       setIsSuccess(false);
 
+    let role = "user";
+
       // Get or generate device token
       const existingToken = await SecureStore.getItemAsync("deviceToken");
       let deviceToken;
@@ -108,6 +110,7 @@ export const UseAuth = () => {
         data: {
           email,
           password,
+          role,
           deviceToken,
         },
       };

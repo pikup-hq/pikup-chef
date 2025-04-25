@@ -6,6 +6,8 @@ import {
   Image,
   Alert,
   ActivityIndicator,
+  StatusBar,
+  SafeAreaView,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ArrowLeft, Bell, Phone } from "lucide-react-native";
@@ -23,11 +25,11 @@ import { ErrorToast, SuccessToast } from "@/components/common/Toasts";
 import axios from "axios";
 import { BASE_URL } from "@/config";
 import useAuthStore from "@/store/authStore";
+import Spacing from "@/constants/Spacing";
 
 const ORDER_STAGES: OrderStatus[] = [
   "in_the_kitchen",
   "prepared",
-  "on_the_way",
   "completed",
 ];
 
@@ -37,8 +39,6 @@ const getStageLabel = (stage: OrderStatus): string => {
       return "In the kitchen";
     case "prepared":
       return "Prepared";
-    case "on_the_way":
-      return "On the way";
     case "completed":
       return "Completed";
     default:
@@ -142,7 +142,14 @@ export default function OrderDetailsScreen() {
   };
 
   return (
-    <AppSafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
+    <SafeAreaView
+      style={{
+        flex: 1,
+        backgroundColor: "#FFFFFF",
+        paddingHorizontal: Spacing * 2,
+        paddingTop: (StatusBar.currentHeight ?? 20) + 5,
+      }}
+    >
       {/* Header */}
       <View
         style={{
@@ -327,6 +334,6 @@ export default function OrderDetailsScreen() {
           </View>
         </View>
       </ScrollView>
-    </AppSafeAreaView>
+    </SafeAreaView>
   );
 }

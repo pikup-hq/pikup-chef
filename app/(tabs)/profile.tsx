@@ -1,4 +1,12 @@
-import { View, Text, Image, TouchableOpacity, Modal } from "react-native";
+import {
+  View,
+  Text,
+  Image,
+  TouchableOpacity,
+  Modal,
+  SafeAreaView,
+  StatusBar,
+} from "react-native";
 import React, { useState } from "react";
 import { AppView } from "@/components/common/AppViews";
 import { MediumText, SemiBoldText } from "@/components/common/AppText";
@@ -24,6 +32,7 @@ import useAuthStore from "@/store/authStore";
 import { createAvatar } from "@dicebear/core";
 import { dylan } from "@dicebear/collection";
 import { SvgXml } from "react-native-svg";
+import Spacing from "@/constants/Spacing";
 
 export default function ProfileScreen() {
   const handleLogout = () => {
@@ -42,7 +51,14 @@ export default function ProfileScreen() {
   }).toString();
 
   return (
-    <AppView>
+    <SafeAreaView
+      style={{
+        flex: 1,
+        backgroundColor: "#FFFFFF",
+        paddingHorizontal: Spacing * 2,
+        paddingTop: (StatusBar.currentHeight ?? 20) + 5,
+      }}
+    >
       <Modal
         visible={openModal}
         statusBarTranslucent={true}
@@ -369,6 +385,6 @@ export default function ProfileScreen() {
           Log out
         </MediumText>
       </TouchableOpacity>
-    </AppView>
+    </SafeAreaView>
   );
 }

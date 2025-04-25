@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity, SafeAreaView, StatusBar } from "react-native";
 import React, {
   useCallback,
   useEffect,
@@ -21,6 +21,7 @@ import { DefaultButton } from "@/components/common/Button";
 import Spinner from "react-native-loading-spinner-overlay";
 import { router, useLocalSearchParams } from "expo-router";
 import { UseAuth } from "@/hooks/apis";
+import Spacing from "@/constants/Spacing";
 // import useAuthStore from "../../store/authStore";
 
 export default function VerifyMail() {
@@ -74,7 +75,14 @@ export default function VerifyMail() {
   };
 
   return (
-    <AppSafeAreaView>
+    <SafeAreaView
+      style={{
+        flex: 1,
+        backgroundColor: "#FFFFFF",
+        paddingHorizontal: Spacing * 2,
+        paddingTop: (StatusBar.currentHeight ?? 20) + 5,
+      }}
+    >
       <Spinner color="#181C2E" visible={isLoading} />
       <TouchableOpacity
         onPress={() => {
@@ -148,6 +156,6 @@ export default function VerifyMail() {
           </MediumBlueText>
         </TouchableOpacity>
       </View>
-    </AppSafeAreaView>
+    </SafeAreaView>
   );
 }

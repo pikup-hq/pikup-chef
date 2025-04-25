@@ -12,6 +12,8 @@ import {
   Platform,
   TouchableWithoutFeedback,
   Keyboard,
+  SafeAreaView,
+  StatusBar,
 } from "react-native";
 import { ArrowLeft, Bell, Camera } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
@@ -308,7 +310,14 @@ export default function MoreDetailsScreen() {
   };
 
   return (
-    <AppSafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
+    <SafeAreaView
+      style={{
+        flex: 1,
+        backgroundColor: "#FFFFFF",
+        paddingHorizontal: Spacing * 2,
+        paddingTop: (StatusBar.currentHeight ?? 20) + 5,
+      }}
+    >
       <Spinner visible={submitting} overlayColor="rgba(0, 0, 0, 0.7)" />
 
       <KeyboardAvoidingView
@@ -883,6 +892,6 @@ export default function MoreDetailsScreen() {
         }}
         title="Select Closing Time"
       />
-    </AppSafeAreaView>
+    </SafeAreaView>
   );
 }

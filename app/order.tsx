@@ -1,5 +1,12 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { View, ScrollView, TouchableOpacity, Image } from "react-native";
+import {
+  View,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  SafeAreaView,
+  StatusBar,
+} from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { ArrowLeft, Bell } from "lucide-react-native";
 import Spinner from "react-native-loading-spinner-overlay";
@@ -18,6 +25,7 @@ import useAuthStore from "@/store/authStore";
 import axios from "axios";
 import { BASE_URL } from "@/config";
 import { ErrorToast } from "@/components/common/Toasts";
+import Spacing from "@/constants/Spacing";
 
 type OrderStatus = "pending" | "completed";
 
@@ -78,7 +86,14 @@ export default function OrdersScreen() {
   const handlePress = () => {};
 
   return (
-    <AppSafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
+    <SafeAreaView
+      style={{
+        flex: 1,
+        backgroundColor: "#FFFFFF",
+        paddingHorizontal: Spacing * 2,
+        paddingTop: (StatusBar.currentHeight ?? 20) + 5,
+      }}
+    >
       <Spinner visible={loading} overlayColor="rgba(0, 0, 0, 0.7)" />
 
       {/* Header */}
@@ -185,6 +200,6 @@ export default function OrdersScreen() {
           ))
         )}
       </ScrollView>
-    </AppSafeAreaView>
+    </SafeAreaView>
   );
 }

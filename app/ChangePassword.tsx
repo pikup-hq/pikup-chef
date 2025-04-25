@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity, SafeAreaView, StatusBar } from "react-native";
 import React, { useState } from "react";
 import { ArrowLeft } from "iconsax-react-native";
 import { AppView } from "@/components/common/AppViews";
@@ -14,6 +14,7 @@ import {
 } from "@/components/common/AppInput";
 import { DefaultButton } from "@/components/common/Button";
 import { router } from "expo-router";
+import Spacing from "@/constants/Spacing";
 
 export default function ChangePassword() {
   const [fullName, setFullName] = useState("");
@@ -22,7 +23,12 @@ export default function ChangePassword() {
   const [confirm, setConfirm] = useState("");
 
   return (
-    <AppView>
+    <SafeAreaView style={{
+      flex: 1,
+      backgroundColor: "#FFFFFF",
+      paddingHorizontal: Spacing * 2,
+      paddingTop: (StatusBar.currentHeight ?? 20) + 5,
+    }}>
       <View
         style={{ flexDirection: "row", alignItems: "center", marginTop: 20 }}
       >
@@ -59,6 +65,6 @@ export default function ChangePassword() {
         style={{ marginTop: 300 }}
         title="Save Password"
       />
-    </AppView>
+    </SafeAreaView>
   );
 }

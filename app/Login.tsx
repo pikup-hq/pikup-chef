@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity, SafeAreaView } from "react-native";
 import React, { useState } from "react";
 import { AppSafeAreaView } from "@/components/common/AppViews";
 import {
@@ -17,6 +17,8 @@ import { ErrorToast } from "@/components/common/Toasts";
 import Spinner from "react-native-loading-spinner-overlay";
 import { router } from "expo-router";
 import { UseAuth } from "@/hooks/apis";
+import Spacing from "@/constants/Spacing";
+import { StatusBar } from "react-native";
 
 export default function Login() {
   // const { navigate, replace, goBack } = UseNavigate();
@@ -38,7 +40,14 @@ export default function Login() {
   }
 
   return (
-    <AppSafeAreaView>
+    <SafeAreaView
+      style={{
+        flex: 1,
+        backgroundColor: "#FFFFFF",
+        paddingHorizontal: Spacing * 2,
+        paddingTop: (StatusBar.currentHeight ?? 20) + 5,
+      }}
+    >
       <Spinner color="#181C2E" visible={isLoading} />
       <SemiBoldText style={{ fontSize: 23, marginTop: 30, marginBottom: 2 }}>
         Welcome Back!
@@ -75,6 +84,6 @@ export default function Login() {
           <MediumBlueText style={{ fontSize: 12 }}>Sign Up</MediumBlueText>
         </TouchableOpacity>
       </View>
-    </AppSafeAreaView>
+    </SafeAreaView>
   );
 }

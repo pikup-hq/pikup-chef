@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity, SafeAreaView, StatusBar } from "react-native";
 import React from "react";
 import { AppView } from "@/components/common/AppViews";
 import { ArrowLeft } from "iconsax-react-native";
@@ -10,7 +10,14 @@ import { router } from "expo-router";
 
 export default function Faq() {
   return (
-    <AppView>
+    <SafeAreaView
+      style={{
+        flex: 1,
+        backgroundColor: "#FFFFFF",
+        paddingHorizontal: Spacing * 2,
+        paddingTop: (StatusBar.currentHeight ?? 20) + 5,
+      }}
+    >
       <View
         style={{ flexDirection: "row", alignItems: "center", marginTop: 20 }}
       >
@@ -78,6 +85,6 @@ export default function Faq() {
           and our support team will assist you.
         </MediumText>
       </View>
-    </AppView>
+    </SafeAreaView>
   );
 }

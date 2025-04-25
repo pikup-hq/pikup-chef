@@ -11,6 +11,8 @@ import {
   Platform,
   TouchableWithoutFeedback,
   Keyboard,
+  SafeAreaView,
+  StatusBar,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ArrowLeft, Bell, Camera, Edit2 } from "lucide-react-native";
@@ -29,6 +31,7 @@ import { UseAuth } from "@/hooks/apis";
 import axios from "axios";
 import useAuthStore from "@/store/authStore";
 import { BASE_URL } from "@/config";
+import Spacing from "@/constants/Spacing";
 
 export default function EditMenuScreen() {
   const router = useRouter();
@@ -168,7 +171,12 @@ export default function EditMenuScreen() {
   };
 
   return (
-    <AppSafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
+    <SafeAreaView style={{
+      flex: 1,
+      backgroundColor: "#FFFFFF",
+      paddingHorizontal: Spacing * 2,
+      paddingTop: (StatusBar.currentHeight ?? 20) + 5,
+    }}>
       <Spinner visible={submitting} overlayColor="rgba(0, 0, 0, 0.7)" />
 
       <KeyboardAvoidingView
@@ -389,6 +397,6 @@ export default function EditMenuScreen() {
           </View>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
-    </AppSafeAreaView>
+    </SafeAreaView>
   );
 }

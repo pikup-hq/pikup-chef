@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   Image,
   ImageBackground,
+  StatusBar,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { MapPin, Bell } from "lucide-react-native";
@@ -33,6 +34,8 @@ import { vendorAdvertisements } from "@/hooks/data/advert";
 import { createAvatar } from "@dicebear/core";
 import { dylan } from "@dicebear/collection";
 import { SvgXml } from "react-native-svg";
+import { SafeAreaView } from "react-native-safe-area-context";
+import Spacing from "@/constants/Spacing";
 
 // Add this helper function at the top of the file
 const formatAmount = (amount: number): string => {
@@ -112,7 +115,14 @@ export default function index() {
   }).toString();
 
   return (
-    <AppSafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
+    <SafeAreaView
+      style={{
+        flex: 1,
+        backgroundColor: "#FFFFFF",
+        paddingHorizontal: Spacing * 2,
+        paddingTop: (StatusBar.currentHeight ?? 20) + 5,
+      }}
+    >
       <Spinner visible={loading} overlayColor="rgba(0, 0, 0, 0.7)" />
 
       {/* Header */}
@@ -251,6 +261,6 @@ export default function index() {
           </View>
         </View>
       </ScrollView>
-    </AppSafeAreaView>
+    </SafeAreaView>
   );
 }

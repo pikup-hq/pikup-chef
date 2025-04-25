@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity, SafeAreaView } from "react-native";
 import React from "react";
 import { AppView } from "@/components/common/AppViews";
 import { ArrowLeft } from "iconsax-react-native";
@@ -7,10 +7,18 @@ import { MediumText, SemiBoldText } from "@/components/common/AppText";
 import Spacing from "@/constants/Spacing";
 import COLORS from "@/constants/colors";
 import { router } from "expo-router";
+import { StatusBar } from "react-native";
 
 export default function PrivacyPolicy() {
   return (
-    <AppView>
+    <SafeAreaView
+      style={{
+        flex: 1,
+        backgroundColor: "#FFFFFF",
+        paddingHorizontal: Spacing * 2,
+        paddingTop: (StatusBar.currentHeight ?? 20) + 5,
+      }}
+    >
       <View
         style={{ flexDirection: "row", alignItems: "center", marginTop: 20 }}
       >
@@ -72,6 +80,6 @@ export default function PrivacyPolicy() {
           parties.
         </MediumText>
       </View>
-    </AppView>
+    </SafeAreaView>
   );
 }

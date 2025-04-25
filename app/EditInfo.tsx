@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity, SafeAreaView } from "react-native";
 import React, { useState } from "react";
 import { ArrowLeft } from "iconsax-react-native";
 import { AppView } from "@/components/common/AppViews";
@@ -14,6 +14,8 @@ import {
 } from "@/components/common/AppInput";
 import { DefaultButton } from "@/components/common/Button";
 import { router } from "expo-router";
+import Spacing from "@/constants/Spacing";
+import { StatusBar } from "react-native";
 
 export default function EditInfo() {
   const [fullName, setFullName] = useState("");
@@ -26,7 +28,12 @@ export default function EditInfo() {
   };
 
   return (
-    <AppView>
+    <SafeAreaView style={{
+      flex: 1,
+      backgroundColor: "#FFFFFF",
+      paddingHorizontal: Spacing * 2,
+      paddingTop: (StatusBar.currentHeight ?? 20) + 5,
+    }}>
       <View
         style={{ flexDirection: "row", alignItems: "center", marginTop: 20 }}
       >
@@ -62,6 +69,6 @@ export default function EditInfo() {
       />
 
       <DefaultButton style={{ marginTop: 300 }} title="Save Changes" />
-    </AppView>
+    </SafeAreaView>
   );
 }

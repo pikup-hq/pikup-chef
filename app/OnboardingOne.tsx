@@ -1,4 +1,11 @@
-import { View, Text, Image, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  Image,
+  TouchableOpacity,
+  SafeAreaView,
+  StatusBar,
+} from "react-native";
 import React from "react";
 import { AppSafeAreaView } from "@/components/common/AppViews";
 import {
@@ -13,10 +20,18 @@ import Logo from "@/assets/svg/pikup-logo.svg";
 import OnboardTwo from "@/assets/svg/onboard-food.svg";
 import SliderTwo from "@/assets/svg/slider-two.svg";
 import { router } from "expo-router";
+import Spacing from "@/constants/Spacing";
 
 export default function OnboardingOne() {
   return (
-    <AppSafeAreaView>
+    <SafeAreaView
+      style={{
+        flex: 1,
+        backgroundColor: "#FFFFFF",
+        paddingHorizontal: Spacing * 2,
+        paddingTop: (StatusBar.currentHeight ?? 20) + 5,
+      }}
+    >
       <View style={{ alignItems: "center", marginTop: responsiveText(50) }}>
         <Logo />
       </View>
@@ -69,6 +84,6 @@ export default function OnboardingOne() {
           Skip
         </SmallText>
       </TouchableOpacity>
-    </AppSafeAreaView>
+    </SafeAreaView>
   );
 }

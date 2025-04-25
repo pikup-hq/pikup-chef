@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity, SafeAreaView } from "react-native";
 import React, { useState } from "react";
 import { ArrowLeft, Facebook, Instagram } from "iconsax-react-native";
 import { AppView } from "@/components/common/AppViews";
@@ -18,6 +18,8 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { router } from "expo-router";
 import { UseAuth } from "@/hooks/apis";
 import { ErrorToast } from "@/components/common/Toasts";
+import Spacing from "@/constants/Spacing";
+import { StatusBar } from "react-native";
 
 export default function ReachUs() {
   const [name, setName] = useState("");
@@ -44,7 +46,14 @@ export default function ReachUs() {
   };
 
   return (
-    <AppView>
+    <SafeAreaView
+      style={{
+        flex: 1,
+        backgroundColor: "#FFFFFF",
+        paddingHorizontal: Spacing * 2,
+        paddingTop: (StatusBar.currentHeight ?? 20) + 5,
+      }}
+    >
       <View
         style={{
           justifyContent: "space-between",
@@ -139,6 +148,6 @@ export default function ReachUs() {
           </View>
         </View>
       </View>
-    </AppView>
+    </SafeAreaView>
   );
 }

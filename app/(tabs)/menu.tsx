@@ -8,6 +8,8 @@ import {
   Text,
   Alert,
   ActivityIndicator,
+  SafeAreaView,
+  StatusBar,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { ArrowLeft, Bell, BookOpen } from "lucide-react-native";
@@ -28,6 +30,7 @@ import { useFocusEffect } from "expo-router";
 import { useCallback } from "react";
 import { BASE_URL } from "@/config";
 import axios from "axios";
+import Spacing from "@/constants/Spacing";
 
 interface MenuItemProps {
   item: MenuItem;
@@ -195,7 +198,14 @@ export default function MenuScreen() {
   };
 
   return (
-    <AppSafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
+    <SafeAreaView
+      style={{
+        flex: 1,
+        backgroundColor: "#FFFFFF",
+        paddingHorizontal: Spacing * 2,
+        paddingTop: (StatusBar.currentHeight ?? 20) + 5,
+      }}
+    >
       <Spinner visible={loading} overlayColor="rgba(0, 0, 0, 0.7)" />
 
       {/* Header */}
@@ -270,6 +280,6 @@ export default function MenuScreen() {
           ))}
         </ScrollView>
       )}
-    </AppSafeAreaView>
+    </SafeAreaView>
   );
 }
