@@ -28,6 +28,7 @@ import useAuthStore from "@/store/authStore";
 import Spacing from "@/constants/Spacing";
 
 const ORDER_STAGES: OrderStatus[] = [
+  "created",
   "in_the_kitchen",
   "prepared",
   "completed",
@@ -35,6 +36,8 @@ const ORDER_STAGES: OrderStatus[] = [
 
 const getStageLabel = (stage: OrderStatus): string => {
   switch (stage) {
+    case "created":
+      return "Order Created";
     case "in_the_kitchen":
       return "In the kitchen";
     case "prepared":

@@ -1,4 +1,5 @@
 export type OrderStatus =
+  | "created"
   | "in_the_kitchen"
   | "prepared"
   | "completed"
