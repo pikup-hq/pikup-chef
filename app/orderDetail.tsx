@@ -258,6 +258,7 @@ export default function OrderDetailsScreen() {
               style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
             >
               <User size={16} color="#666666" />
+              {/* Hello world */}
               <SmallText style={{ fontSize: 15 }}>Pikup</SmallText>
             </View>
             <View
