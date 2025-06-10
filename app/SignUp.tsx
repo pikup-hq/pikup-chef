@@ -30,7 +30,7 @@ type SignupScreenProps = {
 
 const SignupScreen: React.FC<SignupScreenProps> = () => {
   const [businessName, setBusinessName] = useState<string>("");
-  const [lastName, setLastName] = useState<string>("");
+  const [lastName, setLastName] = useState<string>(" ");
 
   const [email, setEmail] = useState<string>("");
   const [phoneNumber, setPhoneNumber] = useState<string>("");

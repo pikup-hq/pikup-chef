@@ -1,10 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 import { BASE_URL } from "@/config";
-import {
-  ErrorToast,
-  SuccessToast,
-} from "@/components/common/Toasts";
+import { ErrorToast, SuccessToast } from "@/components/common/Toasts";
 import useAuthStore from "@/store/authStore";
 import * as SecureStore from "expo-secure-store";
 import { router } from "expo-router";
@@ -87,8 +84,6 @@ export const UseAuth = () => {
       setIsLoading(true);
       setIsSuccess(false);
 
-    let role = "user";
-
       // Get or generate device token
       const existingToken = await SecureStore.getItemAsync("deviceToken");
       let deviceToken;
@@ -98,28 +93,44 @@ export const UseAuth = () => {
         if (deviceToken) {
           await SecureStore.setItemAsync("deviceToken", deviceToken);
         }
-        console.log("New Device Token Generated:", deviceToken);
+        console.log("[Login] New Device Token:", deviceToken);
       } else {
         deviceToken = existingToken;
-        console.log("Using Existing Device Token:", deviceToken);
+        console.log("[Login] Using Existing Device Token:", deviceToken);
       }
+
+      const loginPayload = {
+        email,
+        password,
+        role: "vendor",
+      };
+
+      console.log(
+        "[Login] Request Payload:",
+        JSON.stringify(loginPayload, null, 2)
+      );
 
       const config = {
         method: "post",
         url: `${BASE_URL}/auth/login`,
-        data: {
-          email,
-          password,
-          role,
-          deviceToken,
+        headers: {
+          "Content-Type": "application/json",
         },
+        data: loginPayload,
       };
 
-      const response = await axios.request(config);
+      console.log("[Login] API URL:", config.url);
+      console.log("[Login] Headers:", config.headers);
 
-      if (response.data.user_verified === false) {
-        console.log("Verified?:", response.data?.user_verified);
-        ErrorToast("Verify your Email address");
+      const response = await axios.request(config);
+      console.log(
+        "[Login] Response Data:",
+        JSON.stringify(response.data, null, 2)
+      );
+
+      // Handle email verification
+      if (!response.data.user_verified) {
+        ErrorToast("Please verify your email address");
         router.push({
           pathname: "/VerifyMail",
           params: { mail: email },
@@ -127,41 +138,40 @@ export const UseAuth = () => {
         return;
       }
 
-      let token = response.data.token;
-      let user = response.data;
+      const { token, ...userData } = response.data;
 
+      // Store user data and token
       await SecureStore.setItemAsync("token", token);
-      await SecureStore.setItemAsync("user", JSON.stringify(user));
+      await SecureStore.setItemAsync("user", JSON.stringify(userData));
 
-      setUserInfo(JSON.stringify(user));
+      // Update global state
+      setUserInfo(JSON.stringify(userData));
       setToken(token);
 
       // Check moreDetails status
-      const moreDetails = await SecureStore.getItemAsync("moreDetails");
-      if (moreDetails === "false") {
-        console.log("Redirecting to MoreDetails: Profile incomplete");
+      if (
+        !userData.moreDetails ||
+        Object.keys(userData.moreDetails).length === 0
+      ) {
+        console.log("Profile incomplete - redirecting to MoreDetails");
         router.push("/MoreDetails");
         return;
       }
 
-      console.log("Auth token:", token);
-      console.log("User data:", user);
-
-      SuccessToast(`Welcome back Chef ${user.firstName}!`);
+      SuccessToast(`Welcome back Chef ${userData.firstName}!`);
       setIsSuccess(true);
+      router.push("/(tabs)");
     } catch (error: any) {
-      ErrorToast(error.response?.data?.error || "Login failed");
+      const errorMessage = error.response?.data?.message || "Login failed";
+      console.error("Login Error:", error.response?.data);
+      ErrorToast(errorMessage);
 
-      if (error.response?.data.user_verified === false) {
-        console.log("Verified?:", error.response?.data.user_verified);
-        ErrorToast("Verify your Email address");
+      if (error.response?.data?.user_verified === false) {
         router.push({
           pathname: "/VerifyMail",
           params: { mail: email },
         });
-        return;
       }
-
     } finally {
       setIsLoading(false);
     }
