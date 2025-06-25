@@ -171,12 +171,14 @@ export default function EditMenuScreen() {
   };
 
   return (
-    <SafeAreaView style={{
-      flex: 1,
-      backgroundColor: "#FFFFFF",
-      paddingHorizontal: Spacing * 2,
-      paddingTop: (StatusBar.currentHeight ?? 20) + 5,
-    }}>
+    <SafeAreaView
+      style={{
+        flex: 1,
+        backgroundColor: "#FFFFFF",
+        paddingHorizontal: Spacing * 2,
+        paddingTop: (StatusBar.currentHeight ?? 20) + 5,
+      }}
+    >
       <Spinner visible={submitting} overlayColor="rgba(0, 0, 0, 0.7)" />
 
       <KeyboardAvoidingView
@@ -296,7 +298,7 @@ export default function EditMenuScreen() {
                     <TextInput
                       value={name}
                       onChangeText={setName}
-                      placeholder="Jollof Rice and Chicken"
+                      placeholder="Name of Menu Item"
                       style={{
                         flex: 1,
                         paddingVertical: 12,
@@ -322,7 +324,7 @@ export default function EditMenuScreen() {
                     <TextInput
                       value={description}
                       onChangeText={setDescription}
-                      placeholder="Description"
+                      placeholder="Include if a spoon or portion or a plate"
                       multiline
                       numberOfLines={3}
                       style={{

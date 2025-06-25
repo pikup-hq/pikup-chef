@@ -148,15 +148,15 @@ export const UseAuth = () => {
       setUserInfo(JSON.stringify(userData));
       setToken(token);
 
-      // Check moreDetails status
-      if (
-        !userData.moreDetails ||
-        Object.keys(userData.moreDetails).length === 0
-      ) {
-        console.log("Profile incomplete - redirecting to MoreDetails");
-        router.push("/MoreDetails");
-        return;
-      }
+      // // Check moreDetails status
+      // if (
+      //   !userData.moreDetails ||
+      //   Object.keys(userData.moreDetails).length === 0
+      // ) {
+      //   console.log("Profile incomplete - redirecting to MoreDetails");
+      //   router.push("/MoreDetails");
+      //   return;
+      // }
 
       SuccessToast(`Welcome back Chef ${userData.firstName}!`);
       setIsSuccess(true);

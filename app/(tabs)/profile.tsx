@@ -185,7 +185,11 @@ export default function ProfileScreen() {
             overflow: "hidden",
           }}
         >
-          <SvgXml xml={avatar} height={110} width={110} />
+          <Image
+            source={{ uri: userInfo.avatar }}
+            style={{ width: 110, height: 110, borderRadius: 20 }}
+            resizeMode="cover"
+          />
         </View>
         <SemiBoldText style={{ fontSize: responsiveText(17), marginTop: 5 }}>
           {userInfo.firstName + " " + userInfo.lastName}
@@ -195,7 +199,7 @@ export default function ProfileScreen() {
       {/* Profile List */}
       <TouchableOpacity
         onPress={() => {
-          router.push("/EditInfo");
+          router.push("/MoreDetails");
         }}
         style={{
           borderRadius: 8,
@@ -220,7 +224,7 @@ export default function ProfileScreen() {
           <Profile size="19" color={COLORS.secondary} variant="Bold" />
         </View>
         <MediumText style={{ fontSize: responsiveText(13) }}>
-          Edit Info
+          Edit Restaurant Details
         </MediumText>
       </TouchableOpacity>
       {/* Profile List */}

@@ -88,11 +88,11 @@ const CITIES = [
 
 const OPERATIONS = [
   { value: "food", label: "Food" },
-  { value: "supermarket", label: "Super Market" },
+  // { value: "supermarket", label: "Super Market" },
   { value: "pharmacy", label: "Pharmacy" },
   { value: "market", label: "Market" },
-  { value: "tech", label: "Tech" },
-  { value: "others", label: "Others" },
+  // { value: "tech", label: "Tech" },
+  // { value: "others", label: "Others" },
 ];
 
 const STATES = [
@@ -119,6 +119,7 @@ export default function MoreDetailsScreen() {
   const [restaurantName, setRestaurantName] = useState("");
   const [website, setWebsite] = useState("");
   const [state, setState] = useState("");
+  const [phone, setPhone] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -134,6 +135,7 @@ export default function MoreDetailsScreen() {
 
   const user = useAuthStore((state) => state.userInfo);
   const token = useAuthStore((state) => state.token);
+  const setUserInfo = useAuthStore((state) => state.setUserInfo);
   const userInfo = JSON.parse(user);
 
   // Add uploadImageToCloudinary function
@@ -256,7 +258,9 @@ export default function MoreDetailsScreen() {
 
       const payload = {
         _id: userInfo._id,
-        avatar: profileImage.uri, // This is now the Cloudinary URL
+        avatar: profileImage.uri,
+        // name: restaurantName,
+        // phone,
         description,
         address,
         state: selectedState,
@@ -281,6 +285,9 @@ export default function MoreDetailsScreen() {
           "Content-Type": "application/json",
         },
       });
+
+      // Set updated user info in auth store
+      // setUserInfo(JSON.stringify(response.data));
 
       // Set moreDetails to true in SecureStore
       await SecureStore.setItemAsync("moreDetails", "true");
@@ -410,6 +417,47 @@ export default function MoreDetailsScreen() {
                 >
                   Upload Image
                 </MediumText>
+              </View>
+
+              {/* Name Input */}
+              <View style={{ marginBottom: Spacing * 2 }}>
+                <MediumText style={{ marginBottom: Spacing, color: "#000000" }}>
+                  Name
+                </MediumText>
+                <TextInput
+                  style={{
+                    fontFamily: "Sen-Regular",
+                    fontSize: 14,
+                    color: "#000000",
+                    paddingVertical: Spacing,
+                  }}
+                  placeholder="e.g John Doe"
+                  placeholderTextColor="#AAAAAA"
+                  value={restaurantName}
+                  onChangeText={setRestaurantName}
+                />
+                <View style={{ height: 1, backgroundColor: COLORS.primary }} />
+              </View>
+
+              {/* Phone Number Input */}
+              <View style={{ marginBottom: Spacing * 2 }}>
+                <MediumText style={{ marginBottom: Spacing, color: "#000000" }}>
+                  Phone Number
+                </MediumText>
+                <TextInput
+                  style={{
+                    fontFamily: "Sen-Regular",
+                    fontSize: 14,
+                    color: "#000000",
+                    paddingVertical: Spacing,
+                  }}
+                  placeholder="e.g 08012345678"
+                  placeholderTextColor="#AAAAAA"
+                  value={phone}
+                  onChangeText={setPhone}
+                  keyboardType="phone-pad"
+                />
+                <View style={{ height: 1, backgroundColor: COLORS.primary }} />
               </View>
 
               {/* Description Input */}

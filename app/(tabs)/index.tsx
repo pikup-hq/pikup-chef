@@ -31,9 +31,6 @@ import { ErrorToast } from "@/components/common/Toasts";
 import { format } from "date-fns";
 import { AdvertisementBanner } from "@/components/AdvertismentBanner";
 import { vendorAdvertisements } from "@/hooks/data/advert";
-import { createAvatar } from "@dicebear/core";
-import { dylan } from "@dicebear/collection";
-import { SvgXml } from "react-native-svg";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Spacing from "@/constants/Spacing";
 
@@ -109,11 +106,6 @@ export default function index() {
     }
   };
 
-  const avatar = createAvatar(dylan, {
-    seed: userInfo.firstName,
-    // ... other options
-  }).toString();
-
   return (
     <SafeAreaView
       style={{
@@ -137,7 +129,11 @@ export default function index() {
         }}
       >
         <View style={{ marginRight: 7, borderRadius: 20, overflow: "hidden" }}>
-          <SvgXml xml={avatar} height={40} width={40} />
+          <Image
+            source={{ uri: userInfo.avatar }}
+            style={{ width: 40, height: 40, borderRadius: 20 }}
+            resizeMode="cover"
+          />
         </View>
         <View style={{ flex: 1 }}>
           <SemiBoldText style={{ marginBottom: -2 }}>

@@ -73,7 +73,7 @@ export default function OnboardingOne() {
         title="Next"
         onPress={() => router.push("/OnboardingTwo")}
       />
-      <TouchableOpacity onPress={() => router.push("/SignUp")}>
+      <TouchableOpacity onPress={() => router.push("/Login")}>
         <SmallText
           style={{
             color: COLORS.greyText,
@@ -81,7 +81,7 @@ export default function OnboardingOne() {
             textAlign: "center",
           }}
         >
-          Skip
+          Login
         </SmallText>
       </TouchableOpacity>
     </SafeAreaView>
