@@ -1,6 +1,16 @@
 import { Tabs } from "expo-router";
-import { Home, ShoppingBag, Bell, User, ComputerIcon, Zap, Wallet2, Dock, CookingPot } from "lucide-react-native";
-import COLORS from './../../constants/colors';
+import {
+  Home,
+  ShoppingBag,
+  Bell,
+  User,
+  ComputerIcon,
+  Zap,
+  Wallet2,
+  Dock,
+  CookingPot,
+} from "lucide-react-native";
+import COLORS from "./../../constants/colors";
 
 export default function TabLayout() {
   return (
@@ -10,8 +20,8 @@ export default function TabLayout() {
           backgroundColor: "#FFFFFF",
           borderTopWidth: 1,
           borderTopColor: "#F4F4F4",
-          height: 60,
-          paddingBottom: 8,
+          height: 80,
+          paddingBottom: 15,
           paddingTop: 8,
         },
         tabBarActiveTintColor: COLORS.primary,
@@ -28,9 +38,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: "Home",
-          tabBarIcon: ({ color, size }) => (
-            <Home size={20} color={color} />
-          ),
+          tabBarIcon: ({ color, size }) => <Home size={20} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -38,7 +46,7 @@ export default function TabLayout() {
         options={{
           title: "Menu",
           tabBarIcon: ({ color, size }) => (
-            <CookingPot size={20} color={color}  />
+            <CookingPot size={20} color={color} />
           ),
         }}
       />
@@ -46,18 +54,14 @@ export default function TabLayout() {
         name="wallet"
         options={{
           title: "Wallet",
-          tabBarIcon: ({ color, size }) => (
-            <Wallet2 size={20} color={color}  />
-          ),
+          tabBarIcon: ({ color, size }) => <Wallet2 size={20} color={color} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: "Profile",
-          tabBarIcon: ({ color, size }) => (
-            <User size={20} color={color} />
-          ),
+          tabBarIcon: ({ color, size }) => <User size={20} color={color} />,
         }}
       />
     </Tabs>

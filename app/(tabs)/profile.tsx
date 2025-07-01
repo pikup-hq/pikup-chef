@@ -192,7 +192,9 @@ export default function ProfileScreen() {
           />
         </View>
         <SemiBoldText style={{ fontSize: responsiveText(17), marginTop: 5 }}>
-          {userInfo.firstName + " " + userInfo.lastName}
+          {userInfo.firstName
+              ? userInfo.firstName + " " + userInfo.lastName
+              : userInfo.name}
         </SemiBoldText>
       </View>
 

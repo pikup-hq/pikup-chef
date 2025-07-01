@@ -230,44 +230,44 @@ export default function MoreDetailsScreen() {
 
   // Update handleSubmit to use profileImage.uri directly
   const handleSubmit = async () => {
-    if (
-      !profileImage ||
-      !description ||
-      !address ||
-      !selectedState ||
-      !selectedCity ||
-      !operationType
-    ) {
-      ErrorToast("Please fill all required fields");
-      return;
-    }
+    // if (
+    //   !profileImage ||
+    //   !description ||
+    //   !address ||
+    //   !selectedState ||
+    //   !selectedCity ||
+    //   !operationType
+    // ) {
+    //   ErrorToast("Please fill all required fields");
+    //   return;
+    // }
 
-    const hasSelectedDays = Object.values(operatingDays).some((day) => day);
-    if (!hasSelectedDays) {
-      ErrorToast("Please select at least one operating day");
-      return;
-    }
+    // const hasSelectedDays = Object.values(operatingDays).some((day) => day);
+    // if (!hasSelectedDays) {
+    //   ErrorToast("Please select at least one operating day");
+    //   return;
+    // }
 
-    if (!operatingTime.openingTime || !operatingTime.closingTime) {
-      ErrorToast("Please set operating hours");
-      return;
-    }
+    // if (!operatingTime.openingTime || !operatingTime.closingTime) {
+    //   ErrorToast("Please set operating hours");
+    //   return;
+    // }
 
     try {
       setSubmitting(true);
 
       const payload = {
         _id: userInfo._id,
-        avatar: profileImage.uri,
-        // name: restaurantName,
-        // phone,
+        avatar: profileImage ? profileImage.uri : "",
+        name: restaurantName,
+        phone,
         description,
         address,
         state: selectedState,
         city: selectedCity,
         operation: operationType,
         website: website || "",
-        operatingDays,
+        operatingDay: operatingDays,
         operatingTime: {
           openingTime: operatingTime.openingTime,
           closingTime: operatingTime.closingTime,
@@ -277,8 +277,8 @@ export default function MoreDetailsScreen() {
       console.log("Submitting payload:", payload);
 
       const response = await axios({
-        method: "put",
-        url: `${BASE_URL}/user/edit-restaurant`,
+        method: "patch",
+        url: `${BASE_URL}/auth/edit-vendor`,
         data: payload,
         headers: {
           Authorization: `Bearer ${token}`,
@@ -286,14 +286,23 @@ export default function MoreDetailsScreen() {
         },
       });
 
-      // Set updated user info in auth store
-      // setUserInfo(JSON.stringify(response.data));
+      // Flatten account and vendor into a single object
+      let data = {};
+      if (response.data?.profile) {
+        if (response.data.profile.account) {
+          data = { ...data, ...response.data.profile.account };
+        }
+        if (response.data.profile.vendor) {
+          data = { ...data, ...response.data.profile.vendor };
+        }
+      }
+      console.log("Updated Data:", data);
+      setUserInfo(JSON.stringify(data));
 
-      // Set moreDetails to true in SecureStore
       await SecureStore.setItemAsync("moreDetails", "true");
 
       router.push("/(tabs)");
-      console.log("API Response:", response.data);
+      console.log("API Response:", response);
       SuccessToast("Business details updated successfully");
     } catch (error: any) {
       console.error("Update failed:", error.response?.data);

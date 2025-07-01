@@ -137,7 +137,9 @@ export default function index() {
         </View>
         <View style={{ flex: 1 }}>
           <SemiBoldText style={{ marginBottom: -2 }}>
-            {userInfo.firstName + " " + userInfo.lastName}
+            {userInfo.firstName
+              ? userInfo.firstName + " " + userInfo.lastName
+              : userInfo.name}
           </SemiBoldText>
           <SmallText style={{ color: "#666666", fontSize: 12 }}>
             {userInfo.email}
