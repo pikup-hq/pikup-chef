@@ -59,10 +59,10 @@ interface Transaction {
   orderId: string;
   amount: number;
   channel: string;
-  others: { data: { created_at: string } };
   type?: "credit" | "debit"; // Add this for UI rendering
   description?: string; // Add this for UI rendering
   date?: string; // Add this for UI rendering
+  createdAt: string;
 }
 
 interface WalletData {
@@ -125,7 +125,7 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
               Transaction {transaction.orderId}
             </SmallText>
             <SmallText style={{ color: "#666666", marginTop: 2, fontSize: 12 }}>
-              {formatDate(transaction.others.data.created_at)}
+              {formatDate(transaction.createdAt)}
             </SmallText>
           </View>
           <View style={{ alignItems: "flex-end" }}>
