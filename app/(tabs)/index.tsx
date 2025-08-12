@@ -106,6 +106,11 @@ export default function index() {
     }
   };
 
+  // Sort filteredOrders by createdAt (most recent first)
+  const sortedOrders = [...filteredOrders].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+
   return (
     <SafeAreaView
       style={{
@@ -230,17 +235,17 @@ export default function index() {
 
           <View>
             {/* Orders List */}
-            {!loading && filteredOrders.length === 0 ? (
+            {!loading && sortedOrders.length === 0 ? (
               <NoDataView
                 message={`No ${activeTab} orders at the moment. New orders will appear here.`}
               />
             ) : (
-              filteredOrders.map((order) => (
+              sortedOrders.map((order) => (
                 <OrderItem
                   key={order._id}
                   foodName={order.items[0].product.name}
                   description={order.items[0].product.description}
-                  price={formatAmount(order.items[0].product.price)}
+                  price={formatAmount(order.totalAmount)}
                   image={order.items[0].product.image}
                   timestamp={formatDate(order.createdAt)}
                   onViewOrder={() =>
@@ -249,7 +254,7 @@ export default function index() {
                       params: {
                         id: order._id,
                         orderData: JSON.stringify(order),
-                        orderID: order.orderId, // Pass single order instead of array
+                        orderID: order.orderId,
                       },
                     })
                   }

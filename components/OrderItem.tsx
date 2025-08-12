@@ -52,9 +52,22 @@ const OrderItem: React.FC<OrderItemProps> = ({
           }}
         >
           <View>
-            <SemiBoldText style={{}}>{foodName}</SemiBoldText>
+            <SemiBoldText
+              style={{ maxWidth: 100 }}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {foodName}
+            </SemiBoldText>
             <SmallText
-              style={{ color: "#666666", marginTop: -2, fontSize: 12 }}
+              style={{
+                color: "#666666",
+                marginTop: -2,
+                fontSize: 12,
+                maxWidth: 70,
+              }}
+              numberOfLines={1}
+              ellipsizeMode="tail"
             >
               {description}
             </SmallText>
