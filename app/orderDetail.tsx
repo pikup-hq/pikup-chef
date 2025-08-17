@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   StatusBar,
   SafeAreaView,
+  Linking,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ArrowLeft, Bell, Phone } from "lucide-react-native";
@@ -27,12 +28,7 @@ import { BASE_URL } from "@/config";
 import useAuthStore from "@/store/authStore";
 import Spacing from "@/constants/Spacing";
 
-const ORDER_STAGES: OrderStatus[] = [
-  "created",
-  "in_the_kitchen",
-  "prepared",
-  "completed",
-];
+const ORDER_STAGES: OrderStatus[] = ["created", "in_the_kitchen", "prepared"];
 
 const getStageLabel = (stage: OrderStatus): string => {
   switch (stage) {
@@ -80,6 +76,10 @@ export default function OrderDetailsScreen() {
     try {
       setUpdatingStatus(true);
       console.log("Updating order:", currentOrder.orderId);
+      console.log("Status Update Payload:", {
+        status: newStatus,
+        orderId: currentOrder.orderId,
+      });
 
       const response = await axios({
         method: "put",
@@ -261,18 +261,24 @@ export default function OrderDetailsScreen() {
               {/* Hello world */}
               <SmallText style={{ fontSize: 15 }}>Pikup</SmallText>
             </View>
-            <View
+            <TouchableOpacity
               style={{
                 flexDirection: "row",
                 alignItems: "center",
                 marginTop: 8,
               }}
+              activeOpacity={0.7}
+              onPress={() =>
+                Linking.openURL(
+                  `tel:${currentOrder.user?.phone || "08088513703"}`
+                )
+              }
             >
               <Phone size={16} color="#666666" />
               <SmallText style={{ marginLeft: 8, fontSize: 15 }}>
-                0808 851 3703
+                {currentOrder.user?.phone || "0808 851 3703"}
               </SmallText>
-            </View>
+            </TouchableOpacity>
           </View>
         </View>
 

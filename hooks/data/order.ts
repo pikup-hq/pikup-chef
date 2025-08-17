@@ -16,6 +16,7 @@ export interface OrderItem {
 }
 
 export interface Order {
+  user: any;
   orderId: string | number | (string | number)[] | null | undefined;
   _id: string;
   customerName: string;

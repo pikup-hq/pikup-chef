@@ -248,7 +248,7 @@ export default function index() {
                   price={formatAmount(order.totalAmount)}
                   image={order.items[0].product.image}
                   timestamp={formatDate(order.createdAt)}
-                  onViewOrder={() =>
+                  onViewOrder={() => {
                     router.push({
                       pathname: "/orderDetail",
                       params: {
@@ -256,8 +256,9 @@ export default function index() {
                         orderData: JSON.stringify(order),
                         orderID: order.orderId,
                       },
-                    })
-                  }
+                    });
+                    console.log("Current Order User:", order);
+                  }}
                 />
               ))
             )}
