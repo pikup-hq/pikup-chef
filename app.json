@@ -2,6 +2,7 @@
   "expo": {
     "name": "Pikup Chef",
     "slug": "pikup-chef",
+    "owner": "pikup-hq",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
