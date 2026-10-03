@@ -6,6 +6,7 @@ import {
   Modal,
   SafeAreaView,
   StatusBar,
+  ScrollView,
 } from "react-native";
 import React, { useState } from "react";
 import { AppView } from "@/components/common/AppViews";
@@ -145,6 +146,7 @@ export default function ProfileScreen() {
           </View>
         </View>
       </Modal>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 30 }}>
       <View
         style={{
           marginTop: 10,
@@ -412,6 +414,13 @@ export default function ProfileScreen() {
           Log out
         </MediumText>
       </TouchableOpacity>
+
+      <TouchableOpacity onPress={() => router.push("/DeleteAccount")} style={{ marginBottom: 10 }}>
+        <MediumText style={{ fontSize: responsiveText(12), color: "#888888", textDecorationLine: "underline" }}>
+          Delete my account
+        </MediumText>
+      </TouchableOpacity>
+      </ScrollView>
     </SafeAreaView>
   );
 }

@@ -7,15 +7,30 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "channel": "development"
+      "channel": "development",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.pikup.com.ng",
+        "EXPO_PUBLIC_CLOUDINARY_CLOUD": "duudwz4tx",
+        "EXPO_PUBLIC_CLOUDINARY_PRESET": "pikup-images"
+      }
     },
     "preview": {
       "distribution": "internal",
-      "channel": "preview"
+      "channel": "preview",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.pikup.com.ng",
+        "EXPO_PUBLIC_CLOUDINARY_CLOUD": "duudwz4tx",
+        "EXPO_PUBLIC_CLOUDINARY_PRESET": "pikup-images"
+      }
     },
     "production": {
       "autoIncrement": true,
-      "channel": "production"
+      "channel": "production",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.pikup.com.ng",
+        "EXPO_PUBLIC_CLOUDINARY_CLOUD": "duudwz4tx",
+        "EXPO_PUBLIC_CLOUDINARY_PRESET": "pikup-images"
+      }
     }
   },
   "submit": {

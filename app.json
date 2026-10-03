@@ -10,12 +10,15 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "infoPlist": {
         "UIBackgroundModes": [
           "remote-notification"
-        ]
-      }
+        ],
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "bundleIdentifier": "com.pikuphq.pikupchef",
+      "buildNumber": "1"
     },
     "android": {
       "adaptiveIcon": {
@@ -48,7 +51,9 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "The app accesses your photos to let you share them with your customers."
+          "photosPermission": "Pikup Chef uses your photo library so you can add photos of your restaurant, menu items and extras.",
+          "cameraPermission": false,
+          "microphonePermission": false
         }
       ],
       "expo-secure-store",

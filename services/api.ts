@@ -17,8 +17,11 @@ api.interceptors.response.use(
   async (error: AxiosError<any>) => {
     const status = error.response?.status;
     const message = String(error.response?.data?.error || "");
+    const code = error.response?.data?.code;
     const sessionInvalid =
       status === 401 ||
+      code === "SUSPENDED" ||
+      code === "DEACTIVATED" ||
       (status === 400 && message === "Account not found") ||
       (status === 403 && message === "Account has been suspended");
 

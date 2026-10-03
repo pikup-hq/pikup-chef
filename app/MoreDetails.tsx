@@ -203,7 +203,7 @@ export default function MoreDetailsScreen() {
   ) => {
     try {
       setSubmitting(true);
-      const url = await pickAndUploadImage(options);
+      const url = await pickAndUploadImage(options, "avatar");
       if (url) {
         setImage({ uri: url, type: "image/jpeg", fileName: "image.jpg" });
         SuccessToast("Profile image uploaded successfully");

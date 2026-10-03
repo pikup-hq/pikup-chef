@@ -85,7 +85,7 @@ export default function ExtrasScreen() {
   const pickImage = async () => {
     try {
       setUploading(true);
-      const url = await pickAndUploadImage();
+      const url = await pickAndUploadImage({}, "extra");
       if (url) setForm((f) => (f ? { ...f, image: url } : f));
     } catch (error: any) {
       ErrorToast(error?.message || "Failed to upload image");

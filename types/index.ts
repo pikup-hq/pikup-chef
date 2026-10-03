@@ -76,6 +76,9 @@ export interface VendorDetails {
   operatingTime?: { openingTime?: string; closingTime?: string };
   rating?: number;
   hasPayoutAccount?: boolean;
+  /** False until a Pikup admin approves the restaurant; customers can't see it before then. */
+  verified?: boolean;
+  featured?: boolean;
 }
 
 export interface UserInfo {

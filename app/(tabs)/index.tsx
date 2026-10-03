@@ -22,6 +22,7 @@ import useAuthStore from "@/store/authStore";
 import useNotificationStore from "@/store/notificationStore";
 import { ordersApi } from "@/services/orders";
 import { getErrorMessage } from "@/services/api";
+import { authApi } from "@/services/auth";
 import { ErrorToast } from "@/components/common/Toasts";
 import { naira } from "@/utilities/format";
 import type { Order } from "@/types";
@@ -78,6 +79,16 @@ export default function HomeScreen() {
       }
     },
     [userInfo?._id]
+  );
+
+  // Refresh the profile so an admin approval shows up without signing in again.
+  useFocusEffect(
+    useCallback(() => {
+      authApi
+        .me()
+        .then((me) => useAuthStore.getState().updateUser({ moreDetails: me.moreDetails }))
+        .catch(() => {});
+    }, [])
   );
 
   useFocusEffect(
@@ -148,6 +159,25 @@ export default function HomeScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={() => loadOrders("refresh")} />
         }
       >
+        {userInfo?.moreDetails && userInfo.moreDetails.verified === false && (
+          <View
+            style={{
+              backgroundColor: "#FFF7E6",
+              borderColor: "#F5C26B",
+              borderWidth: 1,
+              borderRadius: 12,
+              padding: 14,
+              marginBottom: 16,
+            }}
+          >
+            <SemiBoldText style={{ color: "#8A5300" }}>Waiting for verification</SemiBoldText>
+            <SmallText style={{ color: "#8A5300", marginTop: 4, lineHeight: 18 }}>
+              The Pikup team is reviewing your restaurant. Customers can&apos;t see you until you&apos;re approved. Add your
+              menu now so you&apos;re ready to go.
+            </SmallText>
+          </View>
+        )}
+
         <AdvertisementBanner
           advertisements={vendorAdvertisements}
           autoScroll={true}

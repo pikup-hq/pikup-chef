@@ -14,6 +14,8 @@ const pickVendorDetails = (vendor: any): VendorDetails | null =>
         operatingTime: vendor.operatingTime,
         rating: vendor.rating,
         hasPayoutAccount: vendor.hasPayoutAccount ?? !!vendor.payoutAccount?.recipientCode,
+        verified: vendor.verified,
+        featured: vendor.featured,
       }
     : null;
 
@@ -40,6 +42,8 @@ export const authApi = {
   me: () => api.get("/auth/me").then((r) => normalizeUser(r.data)),
   editVendor: (payload: Record<string, any>) =>
     api.patch("/auth/edit-vendor", payload).then((r) => r.data),
+  deleteAccount: (password: string) =>
+    api.post("/auth/delete-account", { password }).then((r) => r.data),
   changePassword: (oldPassword: string, newPassword: string) =>
     api.patch("/auth/change-password", { oldPassword, newPassword }).then((r) => r.data),
   saveDeviceToken: (deviceToken: string | null) =>

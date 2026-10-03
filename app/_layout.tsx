@@ -76,6 +76,7 @@ export default function RootLayout() {
         <Stack.Screen name="withdrawalSuccess" options={{ gestureEnabled: false }} />
         <Stack.Screen name="ChangePassword" />
         <Stack.Screen name="EditInfo" />
+        <Stack.Screen name="DeleteAccount" />
       </Stack>
       <NewOrderAlert />
       <StatusBar style="dark" />
