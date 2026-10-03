@@ -3,7 +3,7 @@ import { Text, StyleSheet } from "react-native";
 import { responsiveText } from "../../utilities/helper";
 
 // Text component with styles applied
-const XtraLargeText = ({ children, style, ...props }) => {
+const XtraLargeText = ({ children, style = {}, ...props }) => {
   return (
     <Text style={[styles.xtraLargeText, style]} {...props}>
       {children}
@@ -11,7 +11,7 @@ const XtraLargeText = ({ children, style, ...props }) => {
   );
 };
 
-const LargeText = ({ children, style, ...props }) => {
+const LargeText = ({ children, style = {}, ...props }) => {
   return (
     <Text style={[styles.largeText, style]} {...props}>
       {children}
@@ -19,7 +19,7 @@ const LargeText = ({ children, style, ...props }) => {
   );
 };
 
-const MediumText = ({ children, style, ...props }) => {
+const MediumText = ({ children, style = {}, ...props }) => {
   return (
     <Text style={[styles.mediumText, style]} {...props}>
       {children}
@@ -27,7 +27,7 @@ const MediumText = ({ children, style, ...props }) => {
   );
 };
 
-const MediumBlueText = ({ children, style, ...props }) => {
+const MediumBlueText = ({ children, style = {}, ...props }) => {
   return (
     <Text style={[styles.mediumBlueText, style]} {...props}>
       {children}
@@ -35,7 +35,7 @@ const MediumBlueText = ({ children, style, ...props }) => {
   );
 };
 
-const BoldText = ({ children, style, ...props }) => {
+const BoldText = ({ children, style = {}, ...props }) => {
   return (
     <Text style={[styles.boldText, style]} {...props}>
       {children}
@@ -43,7 +43,7 @@ const BoldText = ({ children, style, ...props }) => {
   );
 };
 
-const SemiBoldText = ({ children, style, ...props }) => {
+const SemiBoldText = ({ children, style = {}, ...props }) => {
   return (
     <Text style={[styles.semiBoldText, style]} {...props}>
       {children}
@@ -51,7 +51,7 @@ const SemiBoldText = ({ children, style, ...props }) => {
   );
 };
 
-const SemiBoldBlueText = ({ children, style, ...props }) => {
+const SemiBoldBlueText = ({ children, style = {}, ...props }) => {
   return (
     <Text style={[styles.semiBoldBlueText, style]} {...props}>
       {children}
@@ -59,7 +59,7 @@ const SemiBoldBlueText = ({ children, style, ...props }) => {
   );
 };
 
-const SmallText = ({ children, style, ...props }) => {
+const SmallText = ({ children, style = {}, ...props }) => {
   return (
     <Text style={[styles.smallText, style]} {...props}>
       {children}
@@ -67,7 +67,7 @@ const SmallText = ({ children, style, ...props }) => {
   );
 };
 
-const ItalicText = ({ children, style, ...props }) => {
+const ItalicText = ({ children, style = {}, ...props }) => {
   return (
     <Text style={[styles.italicText, style]} {...props}>
       {children}

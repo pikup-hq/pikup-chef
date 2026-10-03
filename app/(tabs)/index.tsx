@@ -1,115 +1,103 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import {
   View,
   ScrollView,
   TouchableOpacity,
   Image,
-  ImageBackground,
   StatusBar,
+  RefreshControl,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
-import { MapPin, Bell } from "lucide-react-native";
-import Spinner from "react-native-loading-spinner-overlay";
-import { AppSafeAreaView } from "@/components/common/AppViews";
-import {
-  LargeText,
-  MediumText,
-  SmallText,
-  SemiBoldText,
-} from "@/components/common/AppText";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { SmallText, SemiBoldText } from "@/components/common/AppText";
 import OrderItem from "@/components/OrderItem";
 import NoDataView from "@/components/NoDataView";
-import { userData } from "@/hooks/data/user";
-import { Order } from "@/hooks/data/order";
-import COLORS from "../../constants/colors";
-import Banner from "@/assets/svg/banner.svg";
-import useAuthStore from "@/store/authStore";
-import { UseAuth } from "@/hooks/apis";
-import axios from "axios";
-import { BASE_URL } from "@/config";
-import { ErrorToast } from "@/components/common/Toasts";
-import { format } from "date-fns";
+import NotificationBell from "@/components/NotificationBell";
 import { AdvertisementBanner } from "@/components/AdvertismentBanner";
 import { vendorAdvertisements } from "@/hooks/data/advert";
-import { SafeAreaView } from "react-native-safe-area-context";
+import COLORS from "@/constants/colors";
 import Spacing from "@/constants/Spacing";
+import useAuthStore from "@/store/authStore";
+import useNotificationStore from "@/store/notificationStore";
+import { ordersApi } from "@/services/orders";
+import { getErrorMessage } from "@/services/api";
+import { ErrorToast } from "@/components/common/Toasts";
+import { naira } from "@/utilities/format";
+import type { Order } from "@/types";
 
-// Add this helper function at the top of the file
-const formatAmount = (amount: number): string => {
-  return new Intl.NumberFormat("en-NG", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount);
-};
+// Backup for missed pushes: check for new orders while Home is on screen.
+const POLL_INTERVAL_MS = 20 * 1000;
 
-export default function index() {
+export default function HomeScreen() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"ongoing" | "completed">(
-    "ongoing"
-  );
+  const [activeTab, setActiveTab] = useState<"ongoing" | "completed">("ongoing");
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const initialised = useRef(false);
 
-  const user = useAuthStore((state) => state.userInfo);
-  const token = useAuthStore((state) => state.token);
-  const userInfo = JSON.parse(user);
+  const userInfo = useAuthStore((s) => s.userInfo);
 
-  const getOrders = () => {
-    setLoading(true);
-    console.log("Token:", token);
-    console.log("ID:", userInfo._id);
-
-    axios
-      .get(`${BASE_URL}/order/vendor/${userInfo._id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((response) => {
-        console.log("Orders:", response.data);
-        setOrders(response.data.order || []);
-      })
-      .catch((error) => {
-        ErrorToast("Failed to fetch orders");
-        console.error("Get Orders Error:", error.response?.data);
-      })
-      .finally(() => setLoading(false));
+  const detectNewOrders = (list: Order[]) => {
+    const store = useNotificationStore.getState();
+    const created = list.filter((o) => o.status === "created");
+    if (!initialised.current) {
+      // First load: don't ring for orders that were already waiting.
+      store.markOrdersSeen(created.flatMap((o) => [o._id, o.orderId]));
+      initialised.current = true;
+      return;
+    }
+    const fresh = created.filter((o) => !store.seenOrderIds.has(o._id));
+    if (fresh.length && !store.orderAlert) {
+      const newest = fresh[0];
+      const items = newest.items.reduce((sum, i) => sum + i.quantity, 0);
+      store.showOrderAlert({
+        orderId: newest.orderId,
+        orderObjectId: newest._id,
+        title: "New order received",
+        message: `Order #${newest.orderId} • ${items} item${items === 1 ? "" : "s"} • ${naira(newest.totalAmount)}`,
+      });
+    }
+    store.markOrdersSeen(fresh.flatMap((o) => [o._id, o.orderId]));
   };
+
+  const loadOrders = useCallback(
+    async (mode: "initial" | "refresh" | "silent" = "initial") => {
+      if (!userInfo?._id) return;
+      if (mode === "refresh") setRefreshing(true);
+      try {
+        const list = await ordersApi.list(userInfo._id, { limit: 50 });
+        setOrders(list);
+        detectNewOrders(list);
+      } catch (error) {
+        if (mode !== "silent") ErrorToast(getErrorMessage(error, "Failed to fetch orders"));
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [userInfo?._id]
+  );
 
   useFocusEffect(
     useCallback(() => {
-      getOrders();
-    }, [])
+      loadOrders(orders.length ? "silent" : "initial");
+      const timer = setInterval(() => loadOrders("silent"), POLL_INTERVAL_MS);
+      return () => clearInterval(timer);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [loadOrders])
   );
 
-  const filteredOrders = orders.filter((order) => {
-    // First exclude rejected orders
-    if (order.status === "rejected") {
-      return false;
-    }
-
-    // Then filter by tab
-    if (activeTab === "ongoing") {
-      return order.status !== "completed";
-    }
-    return order.status === "completed";
+  const visibleOrders = orders.filter((order) => {
+    if (order.status === "rejected" || order.status === "cancelled") return false;
+    return activeTab === "ongoing" ? order.status !== "completed" : order.status === "completed";
   });
-  const completedOrdersCount = orders.filter(
-    (order) => order.status === "completed"
-  ).length;
+  const completedCount = orders.filter((o) => o.status === "completed").length;
+  const newCount = orders.filter((o) => o.status === "created").length;
 
-  const formatDate = (dateString: string) => {
-    try {
-      const date = new Date(dateString);
-      return format(date, "MMM dd, yyyy • HH:mm");
-    } catch (error) {
-      console.log("Date parsing error:", error);
-      return dateString;
-    }
-  };
-
-  // Sort filteredOrders by createdAt (most recent first)
-  const sortedOrders = [...filteredOrders].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
+  const displayName =
+    userInfo?.name || [userInfo?.firstName, userInfo?.lastName].filter(Boolean).join(" ");
 
   return (
     <SafeAreaView
@@ -119,9 +107,8 @@ export default function index() {
         paddingHorizontal: Spacing * 2,
         paddingTop: (StatusBar.currentHeight ?? 20) + 5,
       }}
+      edges={["left", "right"]}
     >
-      <Spinner visible={loading} overlayColor="rgba(0, 0, 0, 0.7)" />
-
       {/* Header */}
       <View
         style={{
@@ -133,33 +120,34 @@ export default function index() {
           paddingBottom: 10,
         }}
       >
-        <View style={{ marginRight: 7, borderRadius: 20, overflow: "hidden" }}>
+        <TouchableOpacity
+          onPress={() => router.push("/(tabs)/profile")}
+          style={{ marginRight: 7, borderRadius: 20, overflow: "hidden" }}
+        >
           <Image
-            source={{ uri: userInfo.avatar }}
-            style={{ width: 40, height: 40, borderRadius: 20 }}
+            source={{ uri: userInfo?.avatar }}
+            style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.grey }}
             resizeMode="cover"
           />
-        </View>
+        </TouchableOpacity>
         <View style={{ flex: 1 }}>
-          <SemiBoldText style={{ marginBottom: -2 }}>
-            {userInfo.firstName
-              ? userInfo.firstName + " " + userInfo.lastName
-              : userInfo.name}
+          <SemiBoldText style={{ marginBottom: -2 }} numberOfLines={1}>
+            {displayName}
           </SemiBoldText>
-          <SmallText style={{ color: "#666666", fontSize: 12 }}>
-            {userInfo.email}
+          <SmallText style={{ color: "#666666", fontSize: 12 }} numberOfLines={1}>
+            {userInfo?.email}
           </SmallText>
         </View>
-        <TouchableOpacity onPress={() => router.push("/order")}>
-          <Bell size={20} color="#000000" />
-        </TouchableOpacity>
+        <NotificationBell />
       </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ marginTop: 20 }}
+        contentContainerStyle={{ paddingTop: 20, paddingBottom: 30 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={() => loadOrders("refresh")} />
+        }
       >
-        {/* <Banner /> */}
         <AdvertisementBanner
           advertisements={vendorAdvertisements}
           autoScroll={true}
@@ -168,102 +156,70 @@ export default function index() {
           borderRadius={12}
         />
 
-        {/* Orders Section */}
-        <View>
+        {newCount > 0 && (
           <View
             style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 16,
-              marginTop: 20,
+              marginTop: 16,
+              backgroundColor: COLORS.lightOrange,
+              borderRadius: 10,
+              padding: 12,
             }}
           >
-            {/* Tabs */}
-            <View style={{ flexDirection: "row", gap: 16 }}>
-              <TouchableOpacity onPress={() => setActiveTab("ongoing")}>
+            <SmallText style={{ color: COLORS.secondary }}>
+              {newCount} new order{newCount === 1 ? "" : "s"} waiting for you to accept
+            </SmallText>
+          </View>
+        )}
+
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 16,
+            marginTop: 20,
+          }}
+        >
+          <View style={{ flexDirection: "row", gap: 16 }}>
+            {(["ongoing", "completed"] as const).map((tab) => (
+              <TouchableOpacity key={tab} onPress={() => setActiveTab(tab)}>
                 <View
                   style={{
-                    backgroundColor:
-                      activeTab === "ongoing" ? COLORS.primary : "transparent",
+                    backgroundColor: activeTab === tab ? COLORS.primary : "transparent",
                     paddingHorizontal: 16,
                     paddingVertical: 8,
                     borderRadius: 20,
                   }}
                 >
-                  <SmallText
-                    style={{
-                      color: activeTab === "ongoing" ? "#FFFFFF" : "#000000",
-                    }}
-                  >
-                    Ongoing
+                  <SmallText style={{ color: activeTab === tab ? "#FFFFFF" : "#000000" }}>
+                    {tab === "ongoing" ? "Ongoing" : `Completed (${completedCount})`}
                   </SmallText>
                 </View>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => setActiveTab("completed")}>
-                <View
-                  style={{
-                    backgroundColor:
-                      activeTab === "completed"
-                        ? COLORS.primary
-                        : "transparent",
-                    paddingHorizontal: 16,
-                    paddingVertical: 8,
-                    borderRadius: 20,
-                  }}
-                >
-                  <SmallText
-                    style={{
-                      color: activeTab === "completed" ? "#FFFFFF" : "#000000",
-                    }}
-                  >
-                    Completed({completedOrdersCount})
-                  </SmallText>
-                </View>
-              </TouchableOpacity>
-            </View>
-
-            {/* View All */}
-            <View>
-              <TouchableOpacity onPress={() => router.push("/order")}>
-                <SmallText style={{ color: COLORS.secondary, fontSize: 12 }}>
-                  View all
-                </SmallText>
-              </TouchableOpacity>
-            </View>
+            ))}
           </View>
-
-          <View>
-            {/* Orders List */}
-            {!loading && sortedOrders.length === 0 ? (
-              <NoDataView
-                message={`No ${activeTab} orders at the moment. New orders will appear here.`}
-              />
-            ) : (
-              sortedOrders.map((order) => (
-                <OrderItem
-                  key={order._id}
-                  foodName={order.items[0].product.name}
-                  description={order.items[0].product.description}
-                  price={formatAmount(order.totalAmount)}
-                  image={order.items[0].product.image}
-                  timestamp={formatDate(order.createdAt)}
-                  onViewOrder={() => {
-                    router.push({
-                      pathname: "/orderDetail",
-                      params: {
-                        id: order._id,
-                        orderData: JSON.stringify(order),
-                        orderID: order.orderId,
-                      },
-                    });
-                    console.log("Current Order User:", order);
-                  }}
-                />
-              ))
-            )}
-          </View>
+          <TouchableOpacity onPress={() => router.push("/order")}>
+            <SmallText style={{ color: COLORS.secondary, fontSize: 12 }}>View all</SmallText>
+          </TouchableOpacity>
         </View>
+
+        {loading ? (
+          <ActivityIndicator color={COLORS.secondary} style={{ marginTop: 30 }} />
+        ) : visibleOrders.length === 0 ? (
+          <NoDataView
+            message={`No ${activeTab} orders at the moment. New orders will appear here.`}
+          />
+        ) : (
+          visibleOrders.map((order) => (
+            <OrderItem
+              key={order._id}
+              order={order}
+              onViewOrder={() =>
+                router.push({ pathname: "/orderDetail", params: { id: order._id } })
+              }
+            />
+          ))
+        )}
       </ScrollView>
     </SafeAreaView>
   );

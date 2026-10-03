@@ -6,10 +6,12 @@ import {
   StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
+import { formatAmount } from "@/utilities/format";
 import { MediumText, SemiBoldText } from "@/components/common/AppText";
 
 export default function WithdrawalSuccessScreen() {
+  const { amount, reference, account } = useLocalSearchParams<{ amount?: string; reference?: string; account?: string }>();
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "white" }}>
       <StatusBar barStyle="dark-content" backgroundColor="white" />
@@ -43,7 +45,7 @@ export default function WithdrawalSuccessScreen() {
             textAlign: "center",
           }}
         >
-          Withdrawal Successful
+          Withdrawal initiated
         </SemiBoldText>
 
         <MediumText
@@ -54,12 +56,14 @@ export default function WithdrawalSuccessScreen() {
             marginBottom: 32,
           }}
         >
-          Your withdrawal request has been processed successfully. The funds
-          will be credited to your account shortly.
+          {amount ? `₦${formatAmount(Number(amount))} is on its way` : "Your withdrawal is on its way"}
+          {account ? ` to ${account}` : ""}. Transfers usually arrive within minutes.
+          You will get a notification when it completes.
+          {reference ? `\n\nReference: ${reference}` : ""}
         </MediumText>
 
         <TouchableOpacity
-          onPress={() => router.push("/wallet")}
+          onPress={() => router.replace("/(tabs)/wallet")}
           style={{
             backgroundColor: "#1A1A1A",
             borderRadius: 8,

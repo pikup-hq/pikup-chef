@@ -60,6 +60,7 @@ export const EditInput = (props) => {
           fontFamily: "Sen-Regular",
         }}
         placeholder={props.placeholder}
+        value={props.value}
         placeholderTextColor="#494949"
         onChangeText={(val) => props.onChangeText(val)}
       />
@@ -214,6 +215,7 @@ export const EditEmail = (props) => {
           fontFamily: "Sen-Regular",
         }}
         placeholder={props.placeholder}
+        value={props.value}
         placeholderTextColor="#494949"
         onChangeText={(val) => props.onChangeText(val)}
         keyboardType="email-address"

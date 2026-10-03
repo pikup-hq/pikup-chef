@@ -19,10 +19,19 @@ import COLORS from "@/constants/colors";
 import Logo from "@/assets/svg/pikup-logo.svg";
 import OnboardingPicOne from "@/assets/svg/onboard-truck.svg";
 import SliderOne from "@/assets/svg/slider-one.svg";
-import { router } from "expo-router";
+import { router, Redirect } from "expo-router";
+import useAuthStore, { isProfileComplete } from "@/store/authStore";
 import Spacing from "@/constants/Spacing";
 
-export default function OnboardingOne() {
+export default function Index() {
+  const token = useAuthStore((s) => s.token);
+  const userInfo = useAuthStore((s) => s.userInfo);
+
+  // Signed-in vendors skip onboarding entirely.
+  if (token && userInfo) {
+    return <Redirect href={isProfileComplete(userInfo) ? "/(tabs)" : "/MoreDetails"} />;
+  }
+
   return (
     <SafeAreaView
       style={{

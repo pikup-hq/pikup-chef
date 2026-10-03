@@ -55,7 +55,7 @@ const SignupScreen: React.FC<SignupScreenProps> = () => {
     setShowConfirmPassword(!showConfirmPassword);
   };
 
-  const { isLoading, isSuccess, error, data, signup } = UseAuth();
+  const { isLoading, signup } = UseAuth();
 
   const handleSignUp = async () => {
     if (
@@ -78,21 +78,13 @@ const SignupScreen: React.FC<SignupScreenProps> = () => {
     } else if (!hasNumber) {
       ErrorToast("Password must contain a number.");
     } else {
-      console.log("Email:", email);
-      console.log("Name:", businessName, lastName);
-      console.log("Phone:", phoneNumber);
-      console.log("Password:", password);
-
-      signup(email, password, businessName, lastName, phoneNumber);
+      const ok = await signup(email.trim().toLowerCase(), password, businessName, lastName, phoneNumber);
+      if (ok) {
+        router.push({ pathname: "/VerifyMail", params: { mail: email.trim().toLowerCase() } });
+      }
     }
   };
 
-  if (isSuccess) {
-    router.push({
-      pathname: "/VerifyMail",
-      params: { mail: `${email}` },
-    });
-  }
 
   return (
     <SafeAreaView style={styles.container}>

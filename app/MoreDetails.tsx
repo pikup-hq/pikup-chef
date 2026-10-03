@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   TouchableOpacity,
@@ -31,11 +31,11 @@ import { ProfileAdd } from "iconsax-react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ErrorToast, SuccessToast } from "@/components/common/Toasts";
 import { TimePicker } from "@/components/common/TimePicker";
-import useAuthStore from "@/store/authStore";
-import axios from "axios";
-import { BASE_URL } from "@/config";
+import useAuthStore, { isProfileComplete } from "@/store/authStore";
+import { authApi } from "@/services/auth";
+import { getErrorMessage } from "@/services/api";
+import { pickAndUploadImage } from "@/utilities/cloudinary";
 import Spinner from "react-native-loading-spinner-overlay";
-import * as SecureStore from "expo-secure-store";
 
 // Add these types at the top of the file
 type OperatingDays = {
@@ -113,98 +113,35 @@ interface City {
 
 export default function MoreDetailsScreen() {
   const router = useRouter();
-  const [description, setDescription] = useState("");
-  const [address, setAddress] = useState("");
-  const [profileImage, setProfileImage] = useState<ImageInfo | null>(null);
-  const [restaurantName, setRestaurantName] = useState("");
-  const [website, setWebsite] = useState("");
-  const [state, setState] = useState("");
-  const [phone, setPhone] = useState("");
+  const userInfo = useAuthStore((s) => s.userInfo);
+  const updateUser = useAuthStore((s) => s.updateUser);
+  const details = userInfo?.moreDetails || {};
+  const isFirstSetup = !isProfileComplete(userInfo);
+
+  const findLabel = (list: City[], value?: string) =>
+    list.find((o) => o.value === value?.toLowerCase())?.label || "";
+
+  const [description, setDescription] = useState(details.description || "");
+  const [address, setAddress] = useState(details.address || "");
+  const [profileImage, setProfileImage] = useState<ImageInfo | null>(
+    userInfo?.avatar ? { uri: userInfo.avatar } : null
+  );
+  const [restaurantName, setRestaurantName] = useState(userInfo?.name || "");
+  const [website, setWebsite] = useState(details.website || "");
+  const [phone, setPhone] = useState(userInfo?.phone || "");
 
   const [submitting, setSubmitting] = useState(false);
 
   const [showPicker, setShowPicker] = useState(false);
-  const [selectedCity, setSelectedCity] = useState("");
-  const [selectedCityName, setSelectedCityName] = useState("");
+  const [selectedCity, setSelectedCity] = useState(details.city || "");
+  const [selectedCityName, setSelectedCityName] = useState(findLabel(CITIES, details.city));
   const [showOperationPicker, setShowOperationPicker] = useState(false);
-  const [operationType, setOperationType] = useState("");
-  const [operationName, setOperationName] = useState("");
+  const [operationType, setOperationType] = useState(details.operation || "");
+  const [operationName, setOperationName] = useState(findLabel(OPERATIONS, details.operation));
   const [showStatePicker, setShowStatePicker] = useState(false);
-  const [selectedState, setSelectedState] = useState("");
-  const [selectedStateName, setSelectedStateName] = useState("");
+  const [selectedState, setSelectedState] = useState(details.state || "");
+  const [selectedStateName, setSelectedStateName] = useState(findLabel(STATES, details.state));
 
-  const user = useAuthStore((state) => state.userInfo);
-  const token = useAuthStore((state) => state.token);
-  const setUserInfo = useAuthStore((state) => state.setUserInfo);
-  const userInfo = JSON.parse(user);
-
-  // Add uploadImageToCloudinary function
-  const uploadImageToCloudinary = async (uri: string) => {
-    try {
-      const formData = new FormData();
-      formData.append("file", {
-        uri,
-        type: "image/jpeg",
-        name: "upload.jpg",
-      } as any);
-      formData.append("upload_preset", "pikup-images");
-
-      const response = await axios.post(
-        "https://api.cloudinary.com/v1_1/duudwz4tx/image/upload",
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
-      console.log(response.data.secure_url);
-
-      return response.data.secure_url;
-    } catch (error) {
-      console.error("Upload error:", error);
-      throw new Error("Failed to upload image");
-    }
-  };
-
-  // Update pickImage function
-  const pickImage = async (
-    setImage: (image: ImageInfo | null) => void,
-    options?: ImagePicker.ImagePickerOptions
-  ) => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.5,
-        ...options,
-      });
-
-      if (!result.canceled) {
-        setSubmitting(true);
-        const imageUrl = await uploadImageToCloudinary(result.assets[0].uri);
-        setImage({
-          uri: imageUrl,
-          type: "image/jpeg",
-          fileName: "image.jpg",
-        });
-        SuccessToast("Profile image uploaded successfully");
-      }
-    } catch (error) {
-      ErrorToast("Failed to upload image");
-      console.error("Image pick/upload error:", error);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  // State for a single opening time selector
-  const [selectedDay, setSelectedDay] = useState<string>("default");
-  const [openTime, setOpenTime] = useState<string>("");
-  const [closeTime, setCloseTime] = useState<string>("");
-
-  // Replace the existing opening times state with these
   const [operatingDays, setOperatingDays] = useState<OperatingDays>({
     Monday: false,
     Tuesday: false,
@@ -213,102 +150,120 @@ export default function MoreDetailsScreen() {
     Friday: false,
     Saturday: false,
     Sunday: false,
+    ...((details.operatingDay as Partial<OperatingDays>) || {}),
   });
 
   const [operatingTime, setOperatingTime] = useState<OperatingTime>({
-    openingTime: "",
-    closingTime: "",
+    openingTime: details.operatingTime?.openingTime || "",
+    closingTime: details.operatingTime?.closingTime || "",
   });
 
-  // Add toggle function for days
-  const toggleDay = (day: keyof OperatingDays) => {
-    setOperatingDays((prev) => ({
-      ...prev,
-      [day]: !prev[day],
-    }));
+  // Pull the latest profile from the server so the form always edits current data.
+  useEffect(() => {
+    authApi
+      .me()
+      .then((fresh) => {
+        updateUser(fresh);
+        const d = fresh.moreDetails || {};
+        if (fresh.name) setRestaurantName(fresh.name);
+        if (fresh.phone) setPhone(fresh.phone);
+        if (fresh.avatar) setProfileImage({ uri: fresh.avatar });
+        if (d.description) setDescription(d.description);
+        if (d.address) setAddress(d.address);
+        if (d.website) setWebsite(d.website);
+        if (d.city) {
+          setSelectedCity(d.city);
+          setSelectedCityName(findLabel(CITIES, d.city));
+        }
+        if (d.state) {
+          setSelectedState(d.state);
+          setSelectedStateName(findLabel(STATES, d.state));
+        }
+        if (d.operation) {
+          setOperationType(d.operation);
+          setOperationName(findLabel(OPERATIONS, d.operation));
+        }
+        if (d.operatingDay) setOperatingDays((prev) => ({ ...prev, ...(d.operatingDay as any) }));
+        if (d.operatingTime?.openingTime || d.operatingTime?.closingTime) {
+          setOperatingTime({
+            openingTime: d.operatingTime?.openingTime || "",
+            closingTime: d.operatingTime?.closingTime || "",
+          });
+        }
+      })
+      .catch(() => {
+        // Offline or transient error: keep the cached values.
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const pickImage = async (
+    setImage: (image: ImageInfo | null) => void,
+    options?: ImagePicker.ImagePickerOptions
+  ) => {
+    try {
+      setSubmitting(true);
+      const url = await pickAndUploadImage(options);
+      if (url) {
+        setImage({ uri: url, type: "image/jpeg", fileName: "image.jpg" });
+        SuccessToast("Profile image uploaded successfully");
+      }
+    } catch (error: any) {
+      ErrorToast(error?.message || "Failed to upload image");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  // Update handleSubmit to use profileImage.uri directly
+  const toggleDay = (day: keyof OperatingDays) => {
+    setOperatingDays((prev) => ({ ...prev, [day]: !prev[day] }));
+  };
+
   const handleSubmit = async () => {
-    // if (
-    //   !profileImage ||
-    //   !description ||
-    //   !address ||
-    //   !selectedState ||
-    //   !selectedCity ||
-    //   !operationType
-    // ) {
-    //   ErrorToast("Please fill all required fields");
-    //   return;
-    // }
-
-    // const hasSelectedDays = Object.values(operatingDays).some((day) => day);
-    // if (!hasSelectedDays) {
-    //   ErrorToast("Please select at least one operating day");
-    //   return;
-    // }
-
-    // if (!operatingTime.openingTime || !operatingTime.closingTime) {
-    //   ErrorToast("Please set operating hours");
-    //   return;
-    // }
+    if (!restaurantName.trim() || !description.trim() || !address.trim() || !selectedState || !selectedCity || !operationType) {
+      ErrorToast("Please fill all required fields");
+      return;
+    }
+    if (!Object.values(operatingDays).some(Boolean)) {
+      ErrorToast("Please select at least one operating day");
+      return;
+    }
+    if (!operatingTime.openingTime || !operatingTime.closingTime) {
+      ErrorToast("Please set operating hours");
+      return;
+    }
 
     try {
       setSubmitting(true);
-
       const payload = {
-        _id: userInfo._id,
-        avatar: profileImage ? profileImage.uri : "",
-        name: restaurantName,
-        phone,
-        description,
-        address,
+        avatar: profileImage?.uri || undefined,
+        name: restaurantName.trim(),
+        phone: phone.trim() || undefined,
+        description: description.trim(),
+        address: address.trim(),
         state: selectedState,
         city: selectedCity,
         operation: operationType,
-        website: website || "",
+        website: website.trim(),
         operatingDay: operatingDays,
-        operatingTime: {
-          openingTime: operatingTime.openingTime,
-          closingTime: operatingTime.closingTime,
-        },
+        operatingTime,
       };
 
-      console.log("Submitting payload:", payload);
-
-      const response = await axios({
-        method: "patch",
-        url: `${BASE_URL}/auth/edit-vendor`,
-        data: payload,
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
+      const res = await authApi.editVendor(payload);
+      const account = res.profile?.account || {};
+      const vendor = res.profile?.vendor || {};
+      await updateUser({
+        name: account.name || payload.name,
+        phone: account.phone || userInfo?.phone,
+        avatar: account.avatar || userInfo?.avatar,
+        moreDetails: { ...(userInfo?.moreDetails || {}), ...vendor },
       });
 
-      // Flatten account and vendor into a single object
-      let data = {};
-      if (response.data?.profile) {
-        if (response.data.profile.account) {
-          data = { ...data, ...response.data.profile.account };
-        }
-        if (response.data.profile.vendor) {
-          data = { ...data, ...response.data.profile.vendor };
-        }
-      }
-      console.log("Updated Data:", data);
-      setUserInfo(JSON.stringify(data));
-
-      await SecureStore.setItemAsync("moreDetails", "true");
-
-      router.push("/(tabs)");
-      console.log("API Response:", response);
       SuccessToast("Business details updated successfully");
-    } catch (error: any) {
-      console.error("Update failed:", error.response?.data);
-      ErrorToast(
-        error.response?.data?.message || "Failed to update business details"
-      );
+      if (isFirstSetup || !router.canGoBack()) router.replace("/(tabs)");
+      else router.back();
+    } catch (error) {
+      ErrorToast(getErrorMessage(error, "Failed to update business details"));
     } finally {
       setSubmitting(false);
     }

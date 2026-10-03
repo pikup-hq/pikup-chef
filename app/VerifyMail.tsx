@@ -56,16 +56,15 @@ export default function VerifyMail() {
 
   let otp = code;
 
-  const { isLoading, isSuccess, verifyUser, resendOtp } = UseAuth();
+  const { isLoading, verifyUser, resendOtp } = UseAuth();
 
-  const handleOtp = () => {
+  const handleOtp = async () => {
     const emailAddress = Array.isArray(mail) ? mail[0] : mail;
-    verifyUser(otp, emailAddress);
+    if (await verifyUser(otp, emailAddress)) {
+      router.replace("/Login");
+    }
   };
 
-  if (isSuccess) {
-    router.push("/Login");
-  }
 
   const handleResendOtp = () => {
     const emailAddress = Array.isArray(mail) ? mail[0] : mail;

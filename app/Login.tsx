@@ -25,7 +25,7 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const { isLoading, isSuccess, login } = UseAuth();
+  const { isLoading, login } = UseAuth();
 
   const handleLogin = () => {
     if (email === "" || password === "") {
@@ -35,9 +35,6 @@ export default function Login() {
     }
   };
 
-  if (isSuccess) {
-    router.replace("/(tabs)");
-  }
 
   return (
     <SafeAreaView

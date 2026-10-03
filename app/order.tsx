@@ -1,89 +1,64 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
-  ScrollView,
+  FlatList,
   TouchableOpacity,
-  Image,
   SafeAreaView,
   StatusBar,
+  RefreshControl,
+  ActivityIndicator,
 } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
-import { ArrowLeft, Bell } from "lucide-react-native";
-import Spinner from "react-native-loading-spinner-overlay";
-import { AppSafeAreaView } from "@/components/common/AppViews";
-import {
-  MediumText,
-  SmallText,
-  SemiBoldText,
-} from "@/components/common/AppText";
-import OrderItem from "../components/OrderItem";
-import NoDataView from "../components/NoDataView";
-import { Order } from "@/hooks/data/order";
-import COLORS from "../constants/colors";
-import { UseAuth } from "@/hooks/apis";
-import useAuthStore from "@/store/authStore";
-import axios from "axios";
-import { BASE_URL } from "@/config";
-import { ErrorToast } from "@/components/common/Toasts";
+import { SmallText } from "@/components/common/AppText";
+import OrderItem from "@/components/OrderItem";
+import NoDataView from "@/components/NoDataView";
+import ScreenHeader from "@/components/ScreenHeader";
+import COLORS from "@/constants/colors";
 import Spacing from "@/constants/Spacing";
+import useAuthStore from "@/store/authStore";
+import { ordersApi } from "@/services/orders";
+import { getErrorMessage } from "@/services/api";
+import { ErrorToast } from "@/components/common/Toasts";
+import { ACTIVE_STATUSES } from "@/utilities/format";
+import type { Order } from "@/types";
 
-type OrderStatus = "pending" | "completed";
+type Tab = "pending" | "completed" | "rejected";
+
+const TAB_STATUS: Record<Tab, string> = {
+  pending: ACTIVE_STATUSES.join(","),
+  completed: "completed",
+  rejected: "rejected,cancelled",
+};
 
 export default function OrdersScreen() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<OrderStatus>("pending");
+  const [activeTab, setActiveTab] = useState<Tab>("pending");
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
+  const userInfo = useAuthStore((s) => s.userInfo);
 
-  const user = useAuthStore((state) => state.userInfo);
-  const token = useAuthStore((state) => state.token);
-  const userInfo = JSON.parse(user);
-
-  const getOrders = () => {
-    setLoading(true);
-    console.log("Token:", token);
-    console.log("ID:", userInfo._id);
-
-    axios
-      .get(`${BASE_URL}/order/vendor/${userInfo._id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((response) => {
-        console.log("Orders:", response.data);
-        setOrders(response.data.order || []);
-      })
-      .catch((error) => {
-        ErrorToast("Failed to fetch orders");
-        console.error("Get Orders Error:", error.response?.data);
-      })
-      .finally(() => setLoading(false));
-  };
+  const load = useCallback(
+    async (tab: Tab, isRefresh = false) => {
+      if (!userInfo?._id) return;
+      isRefresh ? setRefreshing(true) : setLoading(true);
+      try {
+        setOrders(await ordersApi.list(userInfo._id, { status: TAB_STATUS[tab], limit: 100 }));
+      } catch (error) {
+        ErrorToast(getErrorMessage(error, "Failed to fetch orders"));
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [userInfo?._id]
+  );
 
   useFocusEffect(
     useCallback(() => {
-      getOrders();
-    }, [])
+      load(activeTab);
+    }, [load, activeTab])
   );
-
-  const filteredOrders = orders.filter((order) => {
-    // First check if order is rejected
-    if (order.status === "rejected") {
-      return false;
-    }
-
-    // Then filter by tab status
-    if (activeTab === "pending") {
-      return order.status !== "completed";
-    }
-    return order.status === "completed";
-  });
-
-  // Update pending count to exclude rejected orders
-  const pendingCount = orders.filter(
-    (order) => order.status !== "completed" && order.status !== "rejected"
-  ).length;
-
-  const handlePress = () => {};
 
   return (
     <SafeAreaView
@@ -94,112 +69,48 @@ export default function OrdersScreen() {
         paddingTop: (StatusBar.currentHeight ?? 20) + 5,
       }}
     >
-      <Spinner visible={loading} overlayColor="rgba(0, 0, 0, 0.7)" />
+      <ScreenHeader title="My Orders" />
 
-      {/* Header */}
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          paddingTop: 16,
-          borderBottomWidth: 1,
-          borderBottomColor: "#F4F4F4",
-        }}
-      >
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={{ marginRight: 16 }}
-        >
-          <ArrowLeft size={24} color="#000000" />
-        </TouchableOpacity>
-
-        <View style={{ flex: 1, paddingBottom: 10 }}>
-          <SemiBoldText style={{ fontSize: 16 }}>My Orders</SemiBoldText>
-        </View>
-      </View>
-
-      {/* Order Status Tabs */}
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "center",
-          paddingTop: 20,
-          paddingBottom: 0,
-        }}
-      >
-        <View style={{ flexDirection: "row", gap: 16 }}>
-          <TouchableOpacity onPress={() => setActiveTab("pending")}>
+      <View style={{ flexDirection: "row", gap: 12, paddingVertical: 16 }}>
+        {(Object.keys(TAB_STATUS) as Tab[]).map((tab) => (
+          <TouchableOpacity key={tab} onPress={() => setActiveTab(tab)}>
             <View
               style={{
-                backgroundColor:
-                  activeTab === "pending" ? COLORS.primary : "transparent",
+                backgroundColor: activeTab === tab ? COLORS.primary : "transparent",
                 paddingHorizontal: 16,
                 paddingVertical: 8,
                 borderRadius: 20,
               }}
             >
-              <SmallText
-                style={{
-                  color: activeTab === "pending" ? "#FFFFFF" : "#000000",
-                }}
-              >
-                Pending({pendingCount})
+              <SmallText style={{ color: activeTab === tab ? "#FFFFFF" : "#000000" }}>
+                {tab[0].toUpperCase() + tab.slice(1)}
               </SmallText>
             </View>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => setActiveTab("completed")}>
-            <View
-              style={{
-                backgroundColor:
-                  activeTab === "completed" ? COLORS.primary : "transparent",
-                paddingHorizontal: 16,
-                paddingVertical: 8,
-                borderRadius: 20,
-              }}
-            >
-              <SmallText
-                style={{
-                  color: activeTab === "completed" ? "#FFFFFF" : "#000000",
-                }}
-              >
-                Completed
-              </SmallText>
-            </View>
-          </TouchableOpacity>
-        </View>
+        ))}
       </View>
 
-      {/* Orders List */}
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingTop: 20 }}
-      >
-        {!loading && filteredOrders.length === 0 ? (
-          <NoDataView message={`No ${activeTab} orders at the moment.`} />
-        ) : (
-          filteredOrders.map((order) => (
+      {loading ? (
+        <ActivityIndicator color={COLORS.secondary} style={{ marginTop: 30 }} />
+      ) : (
+        <FlatList
+          data={orders}
+          keyExtractor={(o) => o._id}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={() => load(activeTab, true)} />
+          }
+          ListEmptyComponent={<NoDataView message={`No ${activeTab} orders at the moment.`} />}
+          renderItem={({ item }) => (
             <OrderItem
-              key={order._id}
-              foodName={order.items[0].name}
-              description={order.items[0].description}
-              price={order.items[0].price}
-              image={order.items[0].image}
-              timestamp={order.createdAt}
+              order={item}
               onViewOrder={() =>
-                router.push({
-                  pathname: "/orderDetail",
-                  params: {
-                    id: order._id,
-                    orderData: JSON.stringify(order),
-                    orderID: order.orderId, // Pass the full order data
-                  },
-                })
+                router.push({ pathname: "/orderDetail", params: { id: item._id } })
               }
             />
-          ))
-        )}
-      </ScrollView>
+          )}
+        />
+      )}
     </SafeAreaView>
   );
 }

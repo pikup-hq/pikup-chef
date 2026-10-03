@@ -41,9 +41,9 @@ export const vendorAdvertisements: Advertisement[] = [
     imageUrl:
       "https://res.cloudinary.com/duudwz4tx/image/upload/v1743026715/Group_111_zgzeby.png",
     title: "Boost Your Sales",
-    description: "Promote your restaurant for more visibility",
+    description: "Add extras to your dishes to grow each order",
     linkType: "screen",
-    link: "/vendor/promotions",
+    link: "/extras",
     brandName: "VendorPartner",
   },
   {
@@ -51,9 +51,9 @@ export const vendorAdvertisements: Advertisement[] = [
     imageUrl:
       "https://res.cloudinary.com/duudwz4tx/image/upload/v1743026319/pikup_s3bbix.png",
     title: "Vendor Training",
-    description: "Learn how to maximize your profits",
+    description: "Keep your menu fresh and items available",
     linkType: "screen",
-    link: "/vendor/training",
+    link: "/(tabs)/menu",
     brandName: "VendorPartner",
   },
   {
@@ -62,8 +62,8 @@ export const vendorAdvertisements: Advertisement[] = [
       "https://res.cloudinary.com/duudwz4tx/image/upload/v1743026715/Group_111_zgzeby.png",
     title: "Partner Program",
     description: "Join our exclusive partner program",
-    linkType: "url",
-    link: "https://example.com/partners",
+    linkType: "screen",
+    link: "/ReachUs",
     brandName: "VendorPartner",
   },
 ];

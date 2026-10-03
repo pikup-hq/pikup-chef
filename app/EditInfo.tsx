@@ -1,74 +1,90 @@
-import { View, Text, TouchableOpacity, SafeAreaView } from "react-native";
+import { SafeAreaView, StatusBar, View } from "react-native";
 import React, { useState } from "react";
-import { ArrowLeft } from "iconsax-react-native";
-import { AppView } from "@/components/common/AppViews";
-import { MediumText } from "@/components/common/AppText";
-import { formatPhoneNumber, responsiveText } from "@/utilities/helper";
-import {
-  DefaultInput,
-  EditEmail,
-  EditInput,
-  EditNum,
-  EmailInput,
-  NumInput,
-} from "@/components/common/AppInput";
-import { DefaultButton } from "@/components/common/Button";
 import { router } from "expo-router";
+import Spinner from "react-native-loading-spinner-overlay";
+import { MediumText } from "@/components/common/AppText";
+import { EditEmail, EditInput, EditNum } from "@/components/common/AppInput";
+import { DefaultButton } from "@/components/common/Button";
+import ScreenHeader from "@/components/ScreenHeader";
+import { ErrorToast, SuccessToast } from "@/components/common/Toasts";
+import { authApi } from "@/services/auth";
+import { getErrorMessage } from "@/services/api";
+import useAuthStore from "@/store/authStore";
 import Spacing from "@/constants/Spacing";
-import { StatusBar } from "react-native";
 
 export default function EditInfo() {
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
+  const userInfo = useAuthStore((s) => s.userInfo);
+  const updateUser = useAuthStore((s) => s.updateUser);
+  const [name, setName] = useState(
+    userInfo?.name || [userInfo?.firstName, userInfo?.lastName].filter(Boolean).join(" ")
+  );
+  const [email, setEmail] = useState(userInfo?.email || "");
+  const [phone, setPhone] = useState(userInfo?.phone || "");
+  const [saving, setSaving] = useState(false);
 
-  const handlePhoneChange = (val: string) => {
-    const formattedPhone = formatPhoneNumber(val);
-    setPhone(formattedPhone);
+  const save = async () => {
+    if (!name.trim() || !email.trim() || !phone.trim()) return ErrorToast("Please fill in all fields");
+    if (!/^\S+@\S+\.\S+$/.test(email.trim())) return ErrorToast("Enter a valid email address");
+
+    setSaving(true);
+    try {
+      const res = await authApi.editVendor({
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        phone: phone.trim(),
+      });
+      const account = res.profile?.account || {};
+      await updateUser({
+        name: account.name || name.trim(),
+        email: account.email || email.trim().toLowerCase(),
+        phone: account.phone || phone.trim(),
+      });
+      SuccessToast("Your details have been updated");
+      router.back();
+    } catch (error) {
+      ErrorToast(getErrorMessage(error, "Could not update your details"));
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
-    <SafeAreaView style={{
-      flex: 1,
-      backgroundColor: "#FFFFFF",
-      paddingHorizontal: Spacing * 2,
-      paddingTop: (StatusBar.currentHeight ?? 20) + 5,
-    }}>
-      <View
-        style={{ flexDirection: "row", alignItems: "center", marginTop: 20 }}
-      >
-        <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size="32" color="black" />
-        </TouchableOpacity>
-        <MediumText style={{ fontSize: responsiveText(15), marginLeft: 5 }}>
-          Edit Info
-        </MediumText>
-      </View>
+    <SafeAreaView
+      style={{
+        flex: 1,
+        backgroundColor: "#FFFFFF",
+        paddingHorizontal: Spacing * 2,
+        paddingTop: (StatusBar.currentHeight ?? 20) + 5,
+      }}
+    >
+      <Spinner visible={saving} overlayColor="rgba(0, 0, 0, 0.5)" />
+      <ScreenHeader title="Edit Info" />
       <MediumText style={{ marginBottom: 30, fontSize: 12, marginTop: 10 }}>
-        Edit your information here to ensure everything stays current and
-        correct.
+        Keep your store name and contact details up to date.
       </MediumText>
       <EditInput
         style={{ marginBottom: 16 }}
         title="Store Name"
         placeholder="Enter your store name"
-        onChangeText={(val: string) => setFullName(val)}
+        value={name}
+        onChangeText={setName}
       />
       <EditEmail
         style={{ marginBottom: 16 }}
         title="Email"
         placeholder="Enter your email address"
-        onChangeText={(val: string) => setEmail(val)}
+        value={email}
+        onChangeText={setEmail}
       />
       <EditNum
         style={{ marginBottom: 16 }}
         title="Phone Number"
-        placeholder="+234 80 851 3703"
-        onChangeText={handlePhoneChange}
+        placeholder="08012345678"
         val={phone}
+        onChangeText={setPhone}
       />
-
-      <DefaultButton style={{ marginTop: 300 }} title="Save Changes" />
+      <View style={{ flex: 1 }} />
+      <DefaultButton onPress={save} style={{ marginBottom: 24 }} title="Save Changes" />
     </SafeAreaView>
   );
 }

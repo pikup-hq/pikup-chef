@@ -10,7 +10,12 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -19,8 +24,9 @@
       },
       "package": "com.oneboyfromife.pikupchef",
       "permissions": [
-        "android.permission.RECORD_AUDIO",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.VIBRATE",
+        "android.permission.POST_NOTIFICATIONS"
       ]
     },
     "web": {
@@ -45,13 +51,21 @@
           "photosPermission": "The app accesses your photos to let you share them with your customers."
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "color": "#FF7622",
+          "sounds": [
+            "./assets/sounds/new_order.wav"
+          ]
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
     },
     "extra": {
-      "paystackSecretKey": "sk_live_302a658e8ce34b112077e27a5305c8f3732b4de2",
       "eas": {
         "projectId": "c7316b64-3c2e-4278-bd85-2a07f8e8d5c4"
       }

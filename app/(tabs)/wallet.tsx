@@ -1,89 +1,41 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
-  ScrollView,
+  FlatList,
   TouchableOpacity,
-  Alert,
-  ImageBackground,
   SafeAreaView,
+  StatusBar,
+  RefreshControl,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
-import { useCallback } from "react";
-import {
-  ArrowLeft,
-  Bell,
-  Eye,
-  EyeOff,
-  CircleDollarSign,
-  MoveUpIcon,
-  MoveDown,
-  Hand,
-  HandCoins,
-} from "lucide-react-native";
-import Spinner from "react-native-loading-spinner-overlay";
-import { AppSafeAreaView } from "@/components/common/AppViews";
-import {
-  LargeText,
-  MediumText,
-  SmallText,
-  SemiBoldText,
-} from "@/components/common/AppText";
-// import { userData, Transaction } from "@/hooks/data/user";
-import COLORS from "../../constants/colors";
-import { UseAuth } from "@/hooks/apis";
-import useAuthStore from "@/store/authStore";
-import { BASE_URL } from "@/config";
-import axios from "axios";
-import { ErrorToast } from "@/components/common/Toasts";
-import { format } from "date-fns";
+import { Eye, EyeOff, ArrowDownLeft, ArrowUpRight, HandCoins, Landmark } from "lucide-react-native";
+import { LargeText, MediumText, SmallText, SemiBoldText } from "@/components/common/AppText";
+import ScreenHeader from "@/components/ScreenHeader";
 import NoDataView from "@/components/NoDataView";
-import { Coin } from "iconsax-react-native";
+import COLORS from "@/constants/colors";
 import Spacing from "@/constants/Spacing";
-import { StatusBar } from "react-native";
+import { ErrorToast } from "@/components/common/Toasts";
+import { walletApi } from "@/services/wallet";
+import { getErrorMessage } from "@/services/api";
+import { formatAmount, formatDate } from "@/utilities/format";
+import type { WalletSummary, WalletTransaction } from "@/types";
 
-// Add this helper function at the top of the file
-const formatAmount = (amount: number): string => {
-  return new Intl.NumberFormat("en-NG", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount);
+const STATUS_STYLE: Record<string, { color: string; label: string }> = {
+  pending: { color: "#F2994A", label: "Pending" },
+  success: { color: "#27AE60", label: "Successful" },
+  failed: { color: "#EB5757", label: "Failed" },
+  reversed: { color: "#828282", label: "Reversed" },
 };
 
-// Update the Transaction interface to match API response
-interface Transaction {
-  _id: string;
-  reference: string;
-  status: string;
-  user: string;
-  vendor: string;
-  orderId: string;
-  amount: number;
-  channel: string;
-  type?: "credit" | "debit"; // Add this for UI rendering
-  description?: string; // Add this for UI rendering
-  date?: string; // Add this for UI rendering
-  createdAt: string;
-}
-
-interface WalletData {
-  balance: number;
-  transactions: Transaction[];
-}
-
-interface TransactionItemProps {
-  transaction: Transaction;
-}
-
-const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
-  const formatDate = (dateString: string) => {
-    try {
-      const date = new Date(dateString);
-      return format(date, "MMM dd, yyyy • HH:mm");
-    } catch (error) {
-      console.log("Date parsing error:", error);
-      return dateString;
-    }
-  };
+const TransactionRow: React.FC<{ txn: WalletTransaction }> = ({ txn }) => {
+  const isCredit = txn.type === "credit";
+  const status = STATUS_STYLE[txn.status] || { color: "#666", label: txn.status };
+  const title =
+    txn.description ||
+    (txn.source === "withdrawal" ? "Withdrawal" : `Order #${txn.orderId || txn.reference}`);
+  const subtitle =
+    txn.source === "order" && txn.status === "pending" ? "Released when the order is delivered" : formatDate(txn.createdAt);
 
   return (
     <View
@@ -100,54 +52,27 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
           width: 40,
           height: 40,
           borderRadius: 20,
-          backgroundColor: "#FFF5F1",
+          backgroundColor: isCredit ? "#EAF7EF" : "#FDECEC",
           alignItems: "center",
           justifyContent: "center",
           marginRight: 12,
         }}
       >
-        <MoveUpIcon size={15} color="green" />
-        {/* {transaction.type === "credit" ? (
-          <MoveUpIcon size={15} color="green" />
-        ) : (
-          <MoveDown size={15} color="red" />
-        )} */}
+        {isCredit ? <ArrowDownLeft size={18} color="#27AE60" /> : <ArrowUpRight size={18} color="#EB5757" />}
       </View>
-
-      <View style={{ flex: 1 }}>
-        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-          <View style={{ flex: 1, marginRight: 8 }}>
-            <SmallText
-              numberOfLines={1}
-              ellipsizeMode="tail"
-              style={{ fontSize: 13 }}
-            >
-              Transaction {transaction.orderId}
-            </SmallText>
-            <SmallText style={{ color: "#666666", marginTop: 2, fontSize: 12 }}>
-              {formatDate(transaction.createdAt)}
-            </SmallText>
-          </View>
-          <View style={{ alignItems: "flex-end" }}>
-            <MediumText
-              style={{
-                color: transaction.type === "credit" ? "#4CAF50" : "#FF4040",
-                fontSize: 13,
-              }}
-            >
-              {transaction.type === "credit" ? "+" : "-"}₦
-              {formatAmount(transaction.amount)}
-            </MediumText>
-            <SmallText
-              style={{
-                color: "#4CAF50",
-                marginTop: 4,
-              }}
-            >
-              {transaction.status}
-            </SmallText>
-          </View>
-        </View>
+      <View style={{ flex: 1, marginRight: 8 }}>
+        <SmallText numberOfLines={1} style={{ fontSize: 13 }}>
+          {title}
+        </SmallText>
+        <SmallText style={{ color: "#666666", marginTop: 2, fontSize: 11 }} numberOfLines={1}>
+          {subtitle}
+        </SmallText>
+      </View>
+      <View style={{ alignItems: "flex-end" }}>
+        <MediumText style={{ color: isCredit ? "#27AE60" : "#EB5757", fontSize: 13 }}>
+          {isCredit ? "+" : "-"}₦{formatAmount(txn.amount)}
+        </MediumText>
+        <SmallText style={{ color: status.color, marginTop: 2, fontSize: 11 }}>{status.label}</SmallText>
       </View>
     </View>
   );
@@ -156,52 +81,97 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
 export default function WalletScreen() {
   const router = useRouter();
   const [showBalance, setShowBalance] = useState(true);
-  const [balance, setBalance] = useState(0);
-  const [wallet, setWallet] = useState<Transaction[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [wallet, setWallet] = useState<WalletSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const user = useAuthStore((state) => state.userInfo);
-  const token = useAuthStore((state) => state.token);
-  const userInfo = JSON.parse(user);
-
-  const getTransactions = () => {
-    setIsLoading(true);
-
-    axios
-      .get(
-        `${BASE_URL}/transactions/wallet-transaction/vendor/${userInfo._id}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      )
-      .then((response) => {
-        console.log("Transactions:", response.data);
-        // Add type field to each transaction
-        const transactionsWithType = response.data.data.map(
-          (transaction: any) => ({
-            ...transaction,
-            type: "credit", // Setting all transactions as credit for now
-          })
-        );
-        setWallet(transactionsWithType || []);
-      })
-      .catch(() => ErrorToast("Failed to fetch transactions"))
-      .finally(() => setIsLoading(false));
-  };
+  const load = useCallback(async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    try {
+      setWallet(await walletApi.summary());
+    } catch (error) {
+      ErrorToast(getErrorMessage(error, "Failed to load wallet"));
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
-      getTransactions();
-    }, [])
+      load();
+    }, [load])
   );
 
-  // Update handleWithdraw to use actual balance
-  const handleWithdraw = () => {
-    router.push({
-      pathname: "/withdraw",
-      params: { walletBalance: `${balance}` },
-    });
-  };
+  const balance = wallet?.balance || 0;
+  const hidden = "₦ ****";
+
+  const header = (
+    <View>
+      <View style={{ backgroundColor: "#1A1A1A", borderRadius: 12, paddingHorizontal: 20, paddingVertical: 24, marginTop: 20 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
+          <SmallText style={{ color: "#FFFFFF", marginRight: 8 }}>Available balance</SmallText>
+          <TouchableOpacity onPress={() => setShowBalance(!showBalance)} hitSlop={10}>
+            {showBalance ? <EyeOff size={16} color="#FFFFFF" /> : <Eye size={16} color="#FFFFFF" />}
+          </TouchableOpacity>
+        </View>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+          <LargeText style={{ color: "#FFFFFF", fontSize: 22 }}>
+            {showBalance ? `₦${formatAmount(balance)}` : hidden}
+          </LargeText>
+          <TouchableOpacity
+            style={{
+              backgroundColor: balance > 0 ? "#FFFFFF" : "#555",
+              paddingHorizontal: 14,
+              paddingVertical: 7,
+              borderRadius: 20,
+            }}
+            onPress={() => router.push("/withdraw")}
+          >
+            <SmallText style={{ color: balance > 0 ? "#000" : "#CCC" }}>Withdraw</SmallText>
+          </TouchableOpacity>
+        </View>
+        <SmallText style={{ color: "#BBBBBB", marginTop: 12, fontSize: 12 }}>
+          Pending: {showBalance ? `₦${formatAmount(wallet?.pendingBalance)}` : hidden} • paid out when orders are delivered
+        </SmallText>
+      </View>
+
+      <TouchableOpacity
+        onPress={() => router.push("/withdraw")}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 12,
+          backgroundColor: COLORS.lightBlue,
+          borderRadius: 12,
+          padding: 14,
+          marginTop: 14,
+        }}
+      >
+        <Landmark size={20} color={COLORS.primary} />
+        <View style={{ flex: 1 }}>
+          {wallet?.payoutAccount ? (
+            <>
+              <SmallText style={{ fontSize: 13 }}>{wallet.payoutAccount.accountName}</SmallText>
+              <SmallText style={{ color: "#666", fontSize: 12 }}>
+                {wallet.payoutAccount.bankName} • ****{wallet.payoutAccount.accountNumber.slice(-4)}
+              </SmallText>
+            </>
+          ) : (
+            <>
+              <SmallText style={{ fontSize: 13 }}>Add a payout bank account</SmallText>
+              <SmallText style={{ color: "#666", fontSize: 12 }}>Required before you can withdraw</SmallText>
+            </>
+          )}
+        </View>
+        <SmallText style={{ color: COLORS.secondary, fontSize: 12 }}>
+          {wallet?.payoutAccount ? "Change" : "Add"}
+        </SmallText>
+      </TouchableOpacity>
+
+      <SemiBoldText style={{ marginTop: 24, marginBottom: 4 }}>Transaction history</SemiBoldText>
+    </View>
+  );
 
   return (
     <SafeAreaView
@@ -212,117 +182,23 @@ export default function WalletScreen() {
         paddingTop: (StatusBar.currentHeight ?? 20) + 5,
       }}
     >
-      <Spinner visible={isLoading} overlayColor="rgba(0, 0, 0, 0.7)" />
-
-      {/* Header */}
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          paddingTop: 16,
-          paddingBottom: 10,
-          borderBottomWidth: 1,
-          borderBottomColor: "#F4F4F4",
-        }}
-      >
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={{ marginRight: 16 }}
-        >
-          <ArrowLeft size={24} color="#000000" />
-        </TouchableOpacity>
-
-        <View style={{ flex: 1 }}>
-          <SemiBoldText style={{ fontSize: 16 }}>Wallet</SemiBoldText>
-        </View>
-      </View>
-
-      {/* Balance Card */}
-      <View style={{ paddingTop: 16, marginTop: 20, marginBottom: 20 }}>
-        <View
-          style={{
-            backgroundColor: "#1A1A1A",
-            borderRadius: 12,
-            paddingHorizontal: 20,
-            paddingVertical: 30,
-          }}
-        >
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              marginBottom: 8,
-            }}
-          >
-            <SmallText style={{ color: "#FFFFFF", marginRight: 8 }}>
-              My Balance
-            </SmallText>
-            <TouchableOpacity onPress={() => setShowBalance(!showBalance)}>
-              {showBalance ? (
-                <EyeOff size={16} color="#FFFFFF" />
-              ) : (
-                <Eye size={16} color="#FFFFFF" />
-              )}
-            </TouchableOpacity>
-          </View>
-
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <LargeText style={{ color: "#FFFFFF", fontSize: 20 }}>
-              {showBalance ? `₦${formatAmount(balance)}` : "****"}
-            </LargeText>
-            <TouchableOpacity
-              style={{
-                backgroundColor: "#FFFFFF",
-                paddingHorizontal: 10,
-                paddingVertical: 5,
-                borderRadius: 20,
-              }}
-              onPress={handleWithdraw}
-            >
-              <SmallText style={{}}>Withdraw</SmallText>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-
-      {/* Transaction History */}
-      <View style={{ flex: 1 }}>
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-            paddingTop: 16,
-          }}
-        >
-          <MediumText style={{}}>Transaction history</MediumText>
-        </View>
-
-        <ScrollView
+      <ScreenHeader title="Wallet" showBack={false} />
+      {loading ? (
+        <ActivityIndicator color={COLORS.secondary} style={{ marginTop: 40 }} />
+      ) : (
+        <FlatList
+          data={wallet?.transactions || []}
+          keyExtractor={(t) => t._id}
+          ListHeaderComponent={header}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingTop: 5 }}
-        >
-          {wallet.length === 0 ? (
-            <NoDataView
-              message="No transactions yet"
-              icon={<HandCoins size={48} color="#CCCCCC" />}
-            />
-          ) : (
-            wallet.map((transaction) => (
-              <TransactionItem
-                key={transaction._id}
-                transaction={transaction}
-              />
-            ))
-          )}
-        </ScrollView>
-      </View>
+          contentContainerStyle={{ paddingBottom: 30 }}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} />}
+          ListEmptyComponent={
+            <NoDataView message="No transactions yet" icon={<HandCoins size={48} color="#CCCCCC" />} />
+          }
+          renderItem={({ item }) => <TransactionRow txn={item} />}
+        />
+      )}
     </SafeAreaView>
   );
 }

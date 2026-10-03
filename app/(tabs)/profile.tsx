@@ -26,29 +26,20 @@ import {
   SecurityUser,
 } from "iconsax-react-native";
 import { responsiveText } from "@/utilities/helper";
-import { userData } from "@/hooks/data/user";
+import { signOut } from "@/services/session";
 import { router } from "expo-router";
 import useAuthStore from "@/store/authStore";
-import { createAvatar } from "@dicebear/core";
-import { dylan } from "@dicebear/collection";
-import { SvgXml } from "react-native-svg";
 import Spacing from "@/constants/Spacing";
 
 export default function ProfileScreen() {
-  const handleLogout = () => {
-    router.push("/OnboardingOne");
-    setOpenModal(false);
-  };
-
   const [openModal, setOpenModal] = useState(false);
-  const user = useAuthStore((state) => state.userInfo);
+  const userInfo = useAuthStore((state) => state.userInfo);
 
-  let userInfo = JSON.parse(user);
-
-  const avatar = createAvatar(dylan, {
-    seed: userInfo.firstName,
-    // ... other options
-  }).toString();
+  const handleLogout = async () => {
+    setOpenModal(false);
+    await signOut();
+    router.replace("/Login");
+  };
 
   return (
     <SafeAreaView
@@ -186,15 +177,14 @@ export default function ProfileScreen() {
           }}
         >
           <Image
-            source={{ uri: userInfo.avatar }}
+            source={{ uri: userInfo?.avatar }}
             style={{ width: 110, height: 110, borderRadius: 20 }}
             resizeMode="cover"
           />
         </View>
         <SemiBoldText style={{ fontSize: responsiveText(17), marginTop: 5 }}>
-          {userInfo.firstName
-              ? userInfo.firstName + " " + userInfo.lastName
-              : userInfo.name}
+          {userInfo?.name ||
+            [userInfo?.firstName, userInfo?.lastName].filter(Boolean).join(" ")}
         </SemiBoldText>
       </View>
 
@@ -227,6 +217,37 @@ export default function ProfileScreen() {
         </View>
         <MediumText style={{ fontSize: responsiveText(13) }}>
           Edit Restaurant Details
+        </MediumText>
+      </TouchableOpacity>
+      {/* Profile List */}
+      <TouchableOpacity
+        onPress={() => {
+          router.push("/EditInfo");
+        }}
+        style={{
+          borderRadius: 8,
+          padding: 10,
+          borderWidth: 1,
+          borderColor: "#BDBDBD",
+          flexDirection: "row",
+          marginTop: responsiveText(15),
+        }}
+      >
+        <View
+          style={{
+            backgroundColor: COLORS.lightOrange,
+            borderRadius: 7,
+            width: 27,
+            height: 27,
+            justifyContent: "center",
+            alignItems: "center",
+            marginRight: 10,
+          }}
+        >
+          <Profile size="19" color={COLORS.secondary} variant="Bold" />
+        </View>
+        <MediumText style={{ fontSize: responsiveText(13) }}>
+          Edit Store Name & Contact
         </MediumText>
       </TouchableOpacity>
       {/* Profile List */}

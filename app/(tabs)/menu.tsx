@@ -1,201 +1,160 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
-  ScrollView,
+  FlatList,
   TouchableOpacity,
   Image,
   Switch,
-  Text,
   Alert,
-  ActivityIndicator,
   SafeAreaView,
   StatusBar,
+  RefreshControl,
+  ActivityIndicator,
 } from "react-native";
-import { useRouter } from "expo-router";
-import { ArrowLeft, Bell, BookOpen } from "lucide-react-native";
-import Spinner from "react-native-loading-spinner-overlay";
-import { AppSafeAreaView } from "@/components/common/AppViews";
-import {
-  MediumText,
-  SmallText,
-  SemiBoldText,
-} from "@/components/common/AppText";
+import { useRouter, useFocusEffect } from "expo-router";
+import { BookOpen, Plus, Layers, Trash2 } from "lucide-react-native";
+import { MediumText, SmallText, SemiBoldText } from "@/components/common/AppText";
 import NoDataView from "@/components/NoDataView";
-import { MenuItem } from "@/hooks/data/menu";
-import COLORS from "../../constants/colors";
-import { ErrorToast, SuccessToast } from "@/components/common/Toasts";
-import { UseAuth } from "@/hooks/apis";
-import useAuthStore from "@/store/authStore";
-import { useFocusEffect } from "expo-router";
-import { useCallback } from "react";
-import { BASE_URL } from "@/config";
-import axios from "axios";
+import ScreenHeader from "@/components/ScreenHeader";
+import NotificationBell from "@/components/NotificationBell";
+import COLORS from "@/constants/colors";
 import Spacing from "@/constants/Spacing";
+import { ErrorToast, SuccessToast } from "@/components/common/Toasts";
+import useAuthStore from "@/store/authStore";
+import { menuApi } from "@/services/menu";
+import { getErrorMessage } from "@/services/api";
+import { naira } from "@/utilities/format";
+import type { MenuItem } from "@/types";
 
-interface MenuItemProps {
+interface MenuRowProps {
   item: MenuItem;
-  onToggleAvailability: (_id: string, newValue: boolean) => Promise<void>;
-  onEdit: (id: string) => void;
   isUpdating: boolean;
+  onToggle: (item: MenuItem) => void;
+  onEdit: (item: MenuItem) => void;
+  onDelete: (item: MenuItem) => void;
 }
 
-const MenuItemComponent: React.FC<MenuItemProps> = ({
-  item,
-  onToggleAvailability,
-  onEdit,
-  isUpdating,
-}) => {
-  const handleToggle = async () => {
-    try {
-      await onToggleAvailability(item._id, !item.available);
-    } catch (error) {
-      Alert.alert("Error", "Failed to update availability");
-    }
-  };
-
+const MenuRow: React.FC<MenuRowProps> = ({ item, isUpdating, onToggle, onEdit, onDelete }) => {
+  const extrasCount = item.extras?.length || 0;
   return (
-    <View
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={() => onEdit(item)}
       style={{
         flexDirection: "row",
         padding: 12,
         marginBottom: 16,
         backgroundColor: `${COLORS.grey}50`,
         borderRadius: 12,
+        opacity: item.available ? 1 : 0.75,
       }}
     >
       <Image
         source={{ uri: item.image }}
-        style={{
-          width: 80,
-          height: 80,
-          borderRadius: 8,
-          marginRight: 12,
-        }}
+        style={{ width: 80, height: 80, borderRadius: 8, marginRight: 12, backgroundColor: COLORS.grey }}
       />
       <View style={{ flex: 1 }}>
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-          }}
-        >
-          <View style={{ flex: 1 }}>
-            <SemiBoldText style={{}}>{item.name}</SemiBoldText>
-            <SmallText style={{ color: "#666666", fontSize: 13 }}>
-              {item.description}
-            </SmallText>
-            <MediumText style={{ marginTop: 8 }}>
-              ₦{item.price.toFixed(2)}
-            </MediumText>
-          </View>
-          <View style={{ alignItems: "flex-end" }}>
-            <SmallText
-              style={{
-                color: item.available ? "green" : "red",
-                fontSize: 13,
-              }}
-            >
-              {item.available ? "Available" : "Unavailable"}
-            </SmallText>
-            <Switch
-              value={item.available}
-              onValueChange={handleToggle}
-              disabled={isUpdating}
-              trackColor={{ false: "#D1D1D1", true: `${COLORS.secondary}50` }}
-              thumbColor={item.available ? COLORS.secondary : "#F4F4F4"}
-            />
-            <TouchableOpacity onPress={() => onEdit(item._id)}>
-              <SmallText
-                style={{
-                  color: COLORS.secondary,
-                  textDecorationLine: "underline",
-                  fontSize: 13,
-                }}
-              >
-                Edit
+        <SemiBoldText numberOfLines={1}>{item.name}</SemiBoldText>
+        <SmallText style={{ color: "#666666", fontSize: 13 }} numberOfLines={2}>
+          {item.description}
+        </SmallText>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 6 }}>
+          <MediumText>{naira(item.price)}</MediumText>
+          {extrasCount > 0 && (
+            <View style={{ backgroundColor: COLORS.lightOrange, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2 }}>
+              <SmallText style={{ color: COLORS.secondary, fontSize: 11 }}>
+                +{extrasCount} extra{extrasCount === 1 ? "" : "s"}
               </SmallText>
-            </TouchableOpacity>
-          </View>
+            </View>
+          )}
         </View>
       </View>
-    </View>
+      <View style={{ alignItems: "flex-end", justifyContent: "space-between" }}>
+        <View style={{ alignItems: "flex-end" }}>
+          <SmallText style={{ color: item.available ? "green" : "red", fontSize: 12 }}>
+            {item.available ? "Available" : "Unavailable"}
+          </SmallText>
+          <Switch
+            value={item.available}
+            onValueChange={() => onToggle(item)}
+            disabled={isUpdating}
+            trackColor={{ false: "#D1D1D1", true: `${COLORS.secondary}50` }}
+            thumbColor={item.available ? COLORS.secondary : "#F4F4F4"}
+          />
+        </View>
+        <TouchableOpacity onPress={() => onDelete(item)} hitSlop={10} accessibilityLabel={`Delete ${item.name}`}>
+          <Trash2 size={18} color="#EB5757" />
+        </TouchableOpacity>
+      </View>
+    </TouchableOpacity>
   );
 };
 
 export default function MenuScreen() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [menu, setMenu] = useState<MenuItem[]>([]);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const userInfo = useAuthStore((s) => s.userInfo);
 
-  const user = useAuthStore((state) => state.userInfo);
-  const token = useAuthStore((state) => state.token);
-  const userInfo = JSON.parse(user);
-
-  const getMenu = () => {
-    setLoading(true);
-
-    axios
-      .get(`${BASE_URL}/product/get/${userInfo._id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((response) => {
-        console.log("Menu:", response.data.data);
-        setMenu(response.data.data || []);
-      })
-      .catch(() => ErrorToast("Failed to fetch menu"))
-      .finally(() => setLoading(false));
-  };
+  const load = useCallback(
+    async (isRefresh = false) => {
+      if (!userInfo?._id) return;
+      if (isRefresh) setRefreshing(true);
+      try {
+        setMenu(await menuApi.list(userInfo._id));
+      } catch (error) {
+        ErrorToast(getErrorMessage(error, "Failed to fetch menu"));
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [userInfo?._id]
+  );
 
   useFocusEffect(
     useCallback(() => {
-      getMenu();
-    }, [])
+      load();
+    }, [load])
   );
 
-  const handleToggleAvailability = async (id: string, newValue: boolean) => {
-    setUpdatingId(id);
-
-    axios
-      .put(
-        `${BASE_URL}/product/editAvailability`,
-        { menuId: id, available: newValue },
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
-      .then(() => {
-        setMenu((prev) =>
-          prev.map((item) =>
-            item._id === id ? { ...item, available: newValue } : item
-          )
-        );
-        SuccessToast("Menu availability updated");
-      })
-      .catch(() => ErrorToast("Failed to update availability"))
-      .finally(() => setUpdatingId(null));
-  };
-
-  const handleEdit = (id: string) => {
-    const menuItem = menu.find((item) => item._id === id);
-    if (menuItem) {
-      router.push({
-        pathname: "/AddMenu",
-        params: {
-          id: menuItem._id,
-          menuData: JSON.stringify(menuItem),
-        },
-      });
-    } else {
-      ErrorToast("Menu item not found");
+  const toggle = async (item: MenuItem) => {
+    const next = !item.available;
+    setUpdatingId(item._id);
+    setMenu((prev) => prev.map((m) => (m._id === item._id ? { ...m, available: next } : m)));
+    try {
+      await menuApi.setAvailability(item._id, next);
+    } catch (error) {
+      setMenu((prev) => prev.map((m) => (m._id === item._id ? { ...m, available: !next } : m)));
+      ErrorToast(getErrorMessage(error, "Failed to update availability"));
+    } finally {
+      setUpdatingId(null);
     }
   };
 
-  const handleAddMenu = () => {
-    router.push({
-      pathname: "/AddMenu",
-      params: { id: "new" },
-    });
+  const remove = (item: MenuItem) => {
+    Alert.alert("Delete menu item", `Remove "${item.name}" from your menu?`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await menuApi.remove(item._id);
+            setMenu((prev) => prev.filter((m) => m._id !== item._id));
+            SuccessToast(`${item.name} deleted`);
+          } catch (error) {
+            ErrorToast(getErrorMessage(error, "Failed to delete item"));
+          }
+        },
+      },
+    ]);
   };
+
+  const edit = (item: MenuItem) =>
+    router.push({ pathname: "/AddMenu", params: { id: item._id, menuData: JSON.stringify(item) } });
 
   return (
     <SafeAreaView
@@ -206,79 +165,70 @@ export default function MenuScreen() {
         paddingTop: (StatusBar.currentHeight ?? 20) + 5,
       }}
     >
-      <Spinner visible={loading} overlayColor="rgba(0, 0, 0, 0.7)" />
+      <ScreenHeader
+        title="Menu"
+        subtitle="Customize your menu"
+        showBack={false}
+        right={<NotificationBell color={COLORS.secondary} />}
+      />
 
-      {/* Header */}
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          paddingTop: 16,
-          borderBottomWidth: 1,
-          borderBottomColor: "#F4F4F4",
-          paddingBottom: 5,
-        }}
-      >
+      <View style={{ flexDirection: "row", gap: 10, paddingTop: 16, paddingBottom: 8 }}>
         <TouchableOpacity
-          onPress={() => router.back()}
-          style={{ marginRight: 16 }}
+          onPress={() => router.push({ pathname: "/AddMenu", params: { id: "new" } })}
+          style={{
+            flex: 1,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 6,
+            backgroundColor: COLORS.primary,
+            paddingVertical: 10,
+            borderRadius: 10,
+          }}
         >
-          <ArrowLeft size={24} color="#000000" />
+          <Plus size={16} color="#FFF" />
+          <SmallText style={{ color: "#FFF" }}>Add menu item</SmallText>
         </TouchableOpacity>
-
-        <View style={{ flex: 1 }}>
-          <SemiBoldText style={{ fontSize: 16 }}>Menu</SemiBoldText>
-          <SmallText style={{ color: "#666666", fontSize: 13 }}>
-            Customize your menu
-          </SmallText>
-        </View>
-
-        <TouchableOpacity onPress={() => router.push("/order")}>
-          <Bell size={20} color={COLORS.secondary} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Menu List Header */}
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "center",
-          paddingTop: 25,
-          paddingBottom: 8,
-        }}
-      >
-        <MediumText style={{}}>Lists of menu</MediumText>
-        <TouchableOpacity onPress={handleAddMenu}>
-          <SmallText
-            style={{ color: COLORS.secondary, textDecorationLine: "underline" }}
-          >
-            Add menu
-          </SmallText>
+        <TouchableOpacity
+          onPress={() => router.push("/extras")}
+          style={{
+            flex: 1,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 6,
+            backgroundColor: COLORS.lightOrange,
+            paddingVertical: 10,
+            borderRadius: 10,
+          }}
+        >
+          <Layers size={16} color={COLORS.secondary} />
+          <SmallText style={{ color: COLORS.secondary }}>Manage extras</SmallText>
         </TouchableOpacity>
       </View>
 
-      {/* Menu List or Empty State */}
-      {!loading && menu.length === 0 ? (
-        <NoDataView
-          message="No menu yet"
-          icon={<BookOpen size={48} color="#CCCCCC" />}
-        />
+      {loading ? (
+        <ActivityIndicator color={COLORS.secondary} style={{ marginTop: 30 }} />
       ) : (
-        <ScrollView
+        <FlatList
+          data={menu}
+          keyExtractor={(m) => m._id}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingTop: 8 }}
-        >
-          {menu.map((item) => (
-            <MenuItemComponent
-              key={item._id}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} />}
+          ListEmptyComponent={
+            <NoDataView message="No menu yet. Add your first dish." icon={<BookOpen size={48} color="#CCCCCC" />} />
+          }
+          renderItem={({ item }) => (
+            <MenuRow
               item={item}
-              onToggleAvailability={handleToggleAvailability}
-              onEdit={handleEdit}
               isUpdating={updatingId === item._id}
+              onToggle={toggle}
+              onEdit={edit}
+              onDelete={remove}
             />
-          ))}
-        </ScrollView>
+          )}
+        />
       )}
     </SafeAreaView>
   );

@@ -94,7 +94,7 @@ export const AdvertisementBanner: React.FC<AdvertisementBannerProps> = ({
   // Handle advertisement click
   const handleAdvertisementPress = async (ad: Advertisement) => {
     if (ad.linkType === "screen") {
-      //   router.push(`/${ad.link}`);
+      router.push((ad.link.startsWith("/") ? ad.link : `/${ad.link}`) as any);
     } else if (ad.linkType === "url") {
       try {
         // Open URL in browser
